@@ -106,19 +106,19 @@ def _prompt_selections(prefs, flags):
         welcome_ascii = f.read()
 
     welcome_content = f"{welcome_ascii}\n"
-    welcome_content += "[bold green]TradingAgents: Multi-Agents LLM Financial Trading Framework - CLI[/bold green]\n\n"
+    welcome_content += "[bold green]Alpha Desk Research - CLI[/bold green]\n\n"
     welcome_content += "[bold]Workflow Steps:[/bold]\n"
     welcome_content += "I. Analyst Team → II. Research Team → III. Trader → IV. Risk Management → V. Portfolio Management\n\n"
     welcome_content += (
-        "[dim]Built by [Tauric Research](https://github.com/TauricResearch)[/dim]"
+        "[dim]Built on [TradingAgents by Tauric Research](https://github.com/TauricResearch)[/dim]"
     )
 
     welcome_box = Panel(
         welcome_content,
         border_style="green",
         padding=(1, 2),
-        title="Welcome to TradingAgents",
-        subtitle="Multi-Agents LLM Financial Trading Framework",
+        title="Welcome to Alpha Desk Research",
+        subtitle="Multi-agent LLM equity research desk",
     )
     console.print(Align.center(welcome_box))
     console.print()

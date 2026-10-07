@@ -223,7 +223,7 @@ def build_app():
     """The FastMCP stdio app with the four research tools."""
     from fastmcp import FastMCP
 
-    app = FastMCP("tradingagents")
+    app = FastMCP("alpha-desk-research")
 
     @app.tool(name="submit_research_job")
     def _submit(

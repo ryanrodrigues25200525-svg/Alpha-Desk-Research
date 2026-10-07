@@ -232,9 +232,9 @@ def _render_display(layout, snap, spinner_text=None, stats_handler=None, start_t
     # Header with welcome message
     layout["header"].update(
         Panel(
-            "[bold green]Welcome to TradingAgents CLI[/bold green]\n"
-            "[dim]© [Tauric Research](https://github.com/TauricResearch)[/dim]",
-            title="Welcome to TradingAgents",
+            "[bold green]Welcome to Alpha Desk Research CLI[/bold green]\n"
+            "[dim]Built on [TradingAgents by Tauric Research](https://github.com/TauricResearch)[/dim]",
+            title="Welcome to Alpha Desk Research",
             border_style="green",
             padding=(1, 2),
             expand=True,

@@ -23,8 +23,8 @@ else:
     _NO_CONSOLE_ERRORS = ()
 
 app = typer.Typer(
-    name="TradingAgents",
-    help="TradingAgents CLI: Multi-Agents LLM Financial Trading Framework",
+    name="alpha-desk",
+    help="Alpha Desk Research CLI: multi-agent LLM equity research desk",
     add_completion=True,  # Enable shell completion
 )
 
@@ -69,7 +69,7 @@ def analyze(
         help="Skip the alternate-screen live view; print plain progress lines instead (pipes, CI, MCP harnesses)",
     ),
 ):
-    """Run an analysis. This is what a bare `tradingagents` does.
+    """Run an analysis. This is what a bare `alpha-desk` does.
 
     Flags answer their questions; with provider, models, depth and language also
     set through TRADINGAGENTS_* variables, the run asks nothing.
