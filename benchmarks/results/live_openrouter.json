@@ -1,0 +1,76 @@
+{
+  "ticker": "AAPL",
+  "trade_date": "2024-06-14",
+  "tradingagents_version": "0.6.0",
+  "run_settings": {
+    "version": "0.6.0",
+    "llm_provider": "openrouter",
+    "deep_think_provider": "openrouter",
+    "deep_think_llm": "nvidia/nemotron-3-super-120b-a12b:free",
+    "quick_think_provider": "openrouter",
+    "quick_think_llm": "nvidia/nemotron-3-super-120b-a12b:free",
+    "analysts": [
+      "market",
+      "social",
+      "news",
+      "fundamentals"
+    ],
+    "max_debate_rounds": 1,
+    "max_risk_discuss_rounds": 1,
+    "output_language": "English",
+    "data_vendors": {
+      "core_stock_apis": "yfinance",
+      "technical_indicators": "yfinance",
+      "fundamental_data": "sec_edgar,yfinance",
+      "news_data": "yfinance",
+      "macro_data": "fred",
+      "prediction_markets": "polymarket"
+    },
+    "tool_vendors": {}
+  },
+  "wall_total_s": 93.59,
+  "phases": {
+    "analysts": {
+      "wall_s": 31.16,
+      "cumulative_s": 31.16,
+      "completed": true,
+      "first_report_s": 8.43
+    },
+    "debate": {
+      "wall_s": 31.64,
+      "cumulative_s": 62.8,
+      "completed": true
+    },
+    "trader": {
+      "wall_s": 7.67,
+      "cumulative_s": 70.47,
+      "completed": true
+    },
+    "risk_manager": {
+      "wall_s": 23.11,
+      "cumulative_s": 93.59,
+      "completed": true
+    },
+    "manager": {
+      "wall_s": 0.0,
+      "cumulative_s": 93.59,
+      "completed": true
+    }
+  },
+  "tokens": {
+    "total": {
+      "input_tokens": 93617,
+      "output_tokens": 23437,
+      "total_tokens": 117054
+    },
+    "by_model": {
+      "nvidia/nemotron-3-super-120b-a12b:free": {
+        "input_tokens": 93617,
+        "output_tokens": 23437,
+        "total_tokens": 117054
+      }
+    }
+  },
+  "decision": "**Rating**: Underweight\n\n**Executive Summary**: Reduce exposure to AAPL to approximately 60% of a typical allocation, treating the position as Underweight. If maintaining any long exposure, place a stop\u2011loss just below the recent swing low around $205 or the 50\u2011day SMA near $180 to limit downside. Consider using modest put spreads or a small short\u2011biased position (10\u201115% of allocation) to express bearish conviction, scaling up only if upcoming Q2 FY24 earnings show further operating\u2011income decli",
+  "ok": true
+}

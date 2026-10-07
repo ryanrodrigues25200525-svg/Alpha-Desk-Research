@@ -1,0 +1,8 @@
+{
+  "ticker": "AAPL",
+  "trade_date": "2024-06-14",
+  "ok": false,
+  "error": "ValueError: API key for provider 'openai' is not set. Please set the OPENAI_API_KEY environment variable (e.g. add OPENAI_API_KEY=your_key to your .env file).",
+  "traceback": "Traceback (most recent call last):\n  File \"/Users/ryanrodrigues/Documents/tradingagents-mcp/benchmarks/run_baseline.py\", line 151, in main\n    result = run(ns.ticker, trade_date)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/ryanrodrigues/Documents/tradingagents-mcp/benchmarks/run_baseline.py\", line 77, in run\n    ta = TradingAgentsGraph(debug=False, config=config, callbacks=[usage])\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/ryanrodrigues/Documents/tradingagents-mcp/tradingagents/graph/trading_graph.py\", line 79, in __init__\n    self.deep_thinking_llm = create_tier_client(self.config, \"deep\", **extra).get_llm()\n                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/ryanrodrigues/Documents/tradingagents-mcp/tradingagents/llm_clients/openai_client.py\", line 311, in get_llm\n    raise ValueError(\nValueError: API key for provider 'openai' is not set. Please set the OPENAI_API_KEY environment variable (e.g. add OPENAI_API_KEY=your_key to your .env file).\n",
+  "hint": "Baseline needs LLM + vendor API keys in env (see .env.example)."
+}

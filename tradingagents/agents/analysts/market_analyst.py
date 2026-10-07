@@ -1,0 +1,84 @@
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+
+from tradingagents.agents.analysts.turn import take_turn
+from tradingagents.agents.context import get_instrument_context_from_state, get_language_instruction
+from tradingagents.agents.tools import get_indicators, get_stock_data, get_verified_market_snapshot
+
+# The tools this analyst is offered; its tool node is built from the same tuple.
+TOOLS = (
+    get_stock_data,
+    get_indicators,
+    get_verified_market_snapshot,
+)
+
+
+def create_market_analyst(llm):
+
+    def market_analyst_node(state):
+        current_date = state["trade_date"]
+        instrument_context = get_instrument_context_from_state(state)
+
+        system_message = (
+            """You are a trading assistant tasked with analyzing financial markets. Your role is to select the **most relevant indicators** for a given market condition or trading strategy from the following list. The goal is to choose up to **8 indicators** that provide complementary insights without redundancy. Categories and each category's indicators are:
+
+Moving Averages:
+- close_50_sma: medium-term trend line; dynamic support/resistance.
+- close_200_sma: long-term trend benchmark; golden/death cross setups.
+- close_10_ema: responsive short-term average for momentum shifts.
+
+MACD Related:
+- macd: momentum via EMA differences; crossovers and divergence.
+- macds: MACD signal line; trade trigger on MACD crossovers.
+- macdh: MACD histogram; momentum strength and early divergence.
+
+Momentum Indicators:
+- rsi: overbought/oversold gauge; 70/30 thresholds plus divergence.
+
+Volatility Indicators:
+- boll: Bollinger middle (20 SMA); benchmark for price movement.
+- boll_ub: Bollinger upper band; overbought and breakout zones.
+- boll_lb: Bollinger lower band; oversold conditions.
+- atr: average true range; volatility for stop-loss and sizing.
+
+Volume-Based Indicators:
+- vwma: volume-weighted moving average; confirm trends with volume.
+
+- Select indicators that provide diverse and complementary information. Avoid redundancy (e.g., do not select both rsi and stochrsi). Also briefly explain why they are suitable for the given market context. When you tool call, please use the exact name of the indicators provided above as they are defined parameters, otherwise your call will fail. Please make sure to call get_stock_data first to retrieve the CSV that is needed to generate indicators. Then use get_indicators with the specific indicator names.
+
+Before writing the final report, call get_verified_market_snapshot for this ticker and the current date, and treat it as the source of truth for any exact OHLCV, price-level, or indicator-value claim. If another tool's output conflicts with the verified snapshot, flag the discrepancy rather than inventing a reconciled number. Do not claim historical validation, support/resistance bounces, or exact percentage moves unless they are directly supported by tool output with concrete dates and prices.
+
+Write a very detailed and nuanced report of the trends you observe. Provide specific, actionable insights with supporting evidence to help traders make informed decisions. Keep the report under 600 words."""
+            + """ Make sure to append a Markdown table at the end of the report to organize key points in the report, organized and easy to read."""
+            + get_language_instruction()
+        )
+
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    "You are a helpful AI assistant, collaborating with other assistants."
+                    " Use the provided tools to progress towards answering the question."
+                    " If you are unable to fully answer, that's OK; another assistant with different tools"
+                    " will help where you left off. Execute what you can to make progress."
+                    " Report what your tools support; another agent decides the trade."
+                    " You have access to the following tools: {tool_names}."
+                    " Today's date is {current_date}; treat it as 'now' for all analysis and tool-call date ranges. {instrument_context}\n"
+                    "{system_message}",
+                ),
+                MessagesPlaceholder(variable_name="messages"),
+            ]
+        )
+
+        prompt = prompt.partial(system_message=system_message)
+        prompt = prompt.partial(tool_names=", ".join([tool.name for tool in TOOLS]))
+        prompt = prompt.partial(current_date=current_date)
+        prompt = prompt.partial(instrument_context=instrument_context)
+
+        result, report = take_turn(prompt, llm, TOOLS, state["messages"])
+
+        return {
+            "messages": [result],
+            "market_report": report,
+        }
+
+    return market_analyst_node
