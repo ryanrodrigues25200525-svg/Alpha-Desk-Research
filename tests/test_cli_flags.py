@@ -16,8 +16,9 @@ from cli.display import MessageBuffer
 
 @pytest.mark.unit
 def test_no_live_flag_exists():
-    out = CliRunner().invoke(m.app, ["--help"]).output
-    assert "no-live" in out
+ cmd = typer.main.get_command(m.app)
+ names = {opt for param in cmd.params for opt in getattr(param, "opts", [])}
+ assert "--no-live" in names
 
 
 @pytest.mark.unit

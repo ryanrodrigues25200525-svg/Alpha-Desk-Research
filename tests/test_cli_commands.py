@@ -150,7 +150,7 @@ def test_backtest_shows_each_cell_and_how_to_continue(runner, monkeypatch, tmp_p
     result = runner.invoke(m.app, ["backtest", "NVDA", "--start", "2026-06-01", "--end", "2026-06-08"])
 
     assert "[1/2] NVDA 2026-06-01" in result.output and "[2/2] NVDA 2026-06-08" in result.output
-    assert f"--run-id {_Result(tmp_path).run_id}" in result.output
+    assert _Result(tmp_path).run_id in result.output  # id, not the flag: narrow consoles wrap "--run-id <id>"
 
 
 @pytest.mark.unit
