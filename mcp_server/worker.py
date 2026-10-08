@@ -117,13 +117,23 @@ class _Worker:
                     final_state = self._stream(graph, job, final_state)
             else:
                 final_state = self._stream(graph, job, final_state)
+            if jobs.get_job(job_id)["state"] == "cancelled":
+                logger.info("Job %s cancelled; skipping save", job_id)
+                return
             results_dir = getattr(graph, "config", {}).get("results_dir") if isinstance(
                 getattr(graph, "config", None), dict
             ) else None
             save_path = Path(results_dir) / "reports" / job_id if results_dir else None
             report_path = graph.save_reports(final_state, job["ticker"], save_path=save_path, html=False)
+            if jobs.get_job(job_id)["state"] == "cancelled":
+                logger.info("Job %s cancelled during save; keeping cancelled", job_id)
+                jobs.set_state(job_id, "cancelled", error="cancelled by user request")
+                return
             jobs.set_state(job_id, "done", report_dir=str(report_path.parent))
         except Exception as exc:  # never raises across the worker: the row says failed
+            if jobs.get_job(job_id)["state"] == "cancelled":
+                logger.info("Job %s cancelled; ignoring late failure", job_id)
+                return
             logger.exception("Job %s failed", job_id)
             try:
                 jobs.set_state(job_id, "failed", error=f"ERROR: job failed: {exc}")
@@ -142,6 +152,10 @@ class _Worker:
                 args.setdefault("config", {}).setdefault("configurable", {})["thread_id"] = checkpoint_id
             stream = graph.stream_run(graph.checkpoint_input(init_state), **args)
             for _messages, state in stream:
+                current = jobs.get_job(job["job_id"])
+                if current is None or current["state"] == "cancelled":
+                    logger.info("Job %s cancelled; stopping stream", job["job_id"])
+                    return final_state
                 if not isinstance(state, dict):
                     continue
                 for key, value in state.items():

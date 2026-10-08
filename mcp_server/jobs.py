@@ -9,7 +9,7 @@ import threading
 import uuid
 from pathlib import Path
 
-STATES = ("queued", "running", "done", "failed")
+STATES = ("queued", "running", "done", "failed", "cancelled")
 
 _lock = threading.RLock()
 _conn: sqlite3.Connection | None = None
@@ -144,6 +144,26 @@ def set_state(job_id: str, state: str, *, error: str | None = None, report_dir: 
         else:
             conn.execute("UPDATE jobs SET state = ? WHERE job_id = ?", (state, job_id))
         conn.commit()
+
+
+def cancel_job(job_id: str) -> dict:
+    """Move a ``queued``/``running`` job to ``cancelled``; return its row."""
+    with _lock:
+        conn = _connect()
+        row = conn.execute("SELECT state FROM jobs WHERE job_id = ?", (job_id,)).fetchone()
+        if row is None:
+            raise ValueError(f"unknown job_id: {job_id!r}")
+        state = row["state"]
+        if state in ("done", "failed", "cancelled"):
+            raise ValueError(f"job {job_id} is already {state}; cannot cancel")
+        conn.execute(
+            "UPDATE jobs SET state = 'cancelled', error = 'cancelled by user request' WHERE job_id = ?",
+            (job_id,),
+        )
+        conn.commit()
+    job = get_job(job_id)
+    assert job is not None
+    return job
 
 
 def set_progress(job_id: str, section: str, content: str) -> None:

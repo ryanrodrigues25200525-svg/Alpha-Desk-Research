@@ -13,6 +13,8 @@ import pytest
 from mcp_server import jobs
 from mcp_server.server import (
     DEPTH_PRESETS,
+    cancel_research_job,
+    get_decision,
     get_report,
     job_status,
     list_reports,
@@ -261,3 +263,42 @@ def test_structured_error_strings(isolated_registry, worker):
     assert tool_get_report("job_does_not_exist").startswith("ERROR:")
     assert tool_get_report("job_does_not_exist", section="nope").startswith("ERROR:")
     assert isinstance(tool_list_reports("AAPL"), str)
+
+
+def test_cancel_queued_job(isolated_registry):
+    job_id = submit_research_job("AAPL", depth_preset="flash")
+    row = cancel_research_job(job_id)
+    assert row["state"] == "cancelled"
+    assert job_status(job_id)["state"] == "cancelled"
+    with pytest.raises(ValueError):
+        cancel_research_job(job_id)  # terminal: cannot cancel twice
+    with pytest.raises(ValueError):
+        cancel_research_job("job_does_not_exist")
+
+
+def test_cancel_running_job(isolated_registry):
+    gate = threading.Event()  # unset: run blocks, job stays running
+    start_worker(graph_factory=_make_factory(isolated_registry, gate=gate))
+    try:
+        job_id = submit_research_job("AAPL", depth_preset="flash")
+        deadline = time.time() + 30
+        while job_status(job_id)["state"] != "running" and time.time() < deadline:
+            time.sleep(0.05)
+        assert job_status(job_id)["state"] == "running"
+        cancel_research_job(job_id)
+        gate.set()  # release the fake graph; worker must keep cancelled
+        deadline = time.time() + 30
+        while jobs.get_job(job_id)["state"] == "running" and time.time() < deadline:
+            time.sleep(0.05)
+        assert jobs.get_job(job_id)["state"] == "cancelled"
+    finally:
+        stop_worker()
+
+
+def test_get_decision(worker):
+    job_id = submit_research_job("AAPL", depth_preset="flash")
+    assert wait_until_done(job_id) == "done"
+    decision = get_decision(job_id)
+    assert "# final_trade_decision for AAPL" in decision
+    with pytest.raises(ValueError):
+        get_decision("job_does_not_exist")

@@ -182,8 +182,44 @@ def list_reports(ticker: str | None = None) -> list[dict]:
     ]
 
 
+def cancel_research_job(job_id: str) -> dict:
+    """Cancel a ``queued``/``running`` job; raises ``ValueError`` when unknown or terminal."""
+    return jobs.cancel_job(job_id)
+
+
+def get_decision(job_id: str) -> str:
+    """Just the final trade decision text; raises ``ValueError`` when missing."""
+    job = jobs.get_job(job_id)
+    if job is None:
+        raise ValueError(f"unknown job_id: {job_id!r}")
+    if job["state"] == "failed":
+        raise ValueError(job["error"] or f"job {job_id} failed")
+    decision = job["progress"].get("final_trade_decision", "")
+    if decision:
+        if job["state"] in ("queued", "running"):
+            return f"> Note: job {job_id} is {job['state']} — partial decision below.\n\n{decision}"
+        return decision
+    if job["state"] in ("queued", "running"):
+        return f"Job {job_id} is {job['state']}: no decision yet."
+    raise ValueError(f"job {job_id} has no decision recorded")
+
+
 def _err(exc: Exception) -> str:
     return f"ERROR: {exc}"
+
+
+def tool_cancel_research_job(job_id: str) -> str:
+    try:
+        return json.dumps(cancel_research_job(job_id))
+    except Exception as exc:
+        return _err(exc)
+
+
+def tool_get_decision(job_id: str) -> str:
+    try:
+        return get_decision(job_id)
+    except Exception as exc:
+        return _err(exc)
 
 
 def tool_submit_research_job(
@@ -220,7 +256,7 @@ def tool_list_reports(ticker: str | None = None) -> str:
 
 
 def build_app():
-    """The FastMCP stdio app with the four research tools."""
+    """The FastMCP stdio app with the six research tools."""
     from fastmcp import FastMCP
 
     app = FastMCP("alpha-desk-research")
@@ -249,6 +285,16 @@ def build_app():
     def _list(ticker: str | None = None) -> str:
         """Done-job reports as JSON, optionally for one ticker."""
         return tool_list_reports(ticker)
+
+    @app.tool(name="cancel_research_job")
+    def _cancel(job_id: str) -> str:
+        """Cancel a queued/running job; returns its row as JSON."""
+        return tool_cancel_research_job(job_id)
+
+    @app.tool(name="get_decision")
+    def _decision(job_id: str) -> str:
+        """Just the final trade decision text for a job."""
+        return tool_get_decision(job_id)
 
     return app
 

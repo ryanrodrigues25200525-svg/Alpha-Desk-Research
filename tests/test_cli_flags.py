@@ -7,7 +7,6 @@ import threading
 
 import pytest
 import typer
-from typer.testing import CliRunner
 
 import cli.main as m
 from cli import run

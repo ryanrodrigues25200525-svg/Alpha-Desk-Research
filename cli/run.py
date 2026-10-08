@@ -1,10 +1,10 @@
 """Running one analysis from the CLI: build the graph, stream it into the live view, save the report."""
 
-import sys
 import os
-from contextlib import nullcontext
+import sys
 import time
 import webbrowser
+from contextlib import nullcontext
 from functools import wraps
 from pathlib import Path
 

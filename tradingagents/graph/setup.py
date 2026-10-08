@@ -1,7 +1,8 @@
 import logging
-from concurrent.futures import ThreadPoolExecutor
 from collections import Counter
-from typing import Any, Callable, TypedDict
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any, TypedDict
 
 from langchain_core.messages import HumanMessage
 from langgraph.graph import END, START, StateGraph
