@@ -40,6 +40,7 @@ It does this 👇
 | ⚡ **Parallel debates** | Bull/bear/risk agents talk at the same time instead of waiting in line. 🏃‍♂️🏃‍♀️ |
 | 🖥️ **Tougher CLI** | Live view that doesn't glitch, `--no-live` mode for servers/CI, fails loudly on errors. 🔔 |
 | ⚙️ **Easy config** | Set models/keys via `ALPHA_DESK_*` env vars, including free-model presets. 🔑 |
+| 🎯 **Track record** | The desk keeps score of its own calls: `alpha-desk scoreboard` prints hit rate + mean alpha per rating group, and says "too few to rate" until the sample is real. 📈 |
 
 ## 🚀 Quickstart
 
@@ -77,13 +78,23 @@ alpha-desk --ticker AAPL --no-live
 }
 ```
 
-🧰 Tools: `run_analysis` 🏁 → `get_status` 👀 → `get_report` 📄. Tests: `tests/test_mcp_contract.py`. ✅
+🧰 Tools: `submit_research_job` 🏁 → `job_status` 👀 → `get_report` 📄, plus `list_reports`, `cancel_research_job`, `get_decision` and `get_scoreboard` 🎯. Tests: `tests/test_mcp_contract.py`. ✅
 
 ⏱️ **Time your own run:**
 
 ```bash
 python benchmarks/run_baseline.py --ticker AAPL --out benchmarks/results/my_run.json
 ```
+
+📈 **Score the desk's own calls:**
+
+```bash
+alpha-desk scoreboard                      # hit rate + mean alpha, by rating
+alpha-desk scoreboard --group-by model     # split it by the model that made the call
+alpha-desk scoreboard --log path/to/memory.md   # score a backtest run's log instead
+```
+
+📊 **Cost a config, then judge it:** `python benchmarks/run_matrix.py --configs configs.json` writes a cost/latency table per config; quality for each comes from `alpha-desk scoreboard --log <that run's log>`. 📉
 
 ## 🗂️ What's inside?
 
@@ -92,7 +103,7 @@ alpha_desk_research/  🧠 the agent team + data + models
 cli/                  🖥️ the terminal app
 mcp_server/           📡 the Claude/agent plug (jobs / server / worker)
 benchmarks/           ⏱️ speed + cost measurements
-tests/                ✅ 1285 passing tests
+tests/                ✅ 1350 passing tests
 ```
 
 ## 🙏 Attribution
