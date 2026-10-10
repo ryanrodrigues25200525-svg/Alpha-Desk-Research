@@ -103,7 +103,7 @@ alpha_desk_research/  🧠 the agent team + data + models
 cli/                  🖥️ the terminal app
 mcp_server/           📡 the Claude/agent plug (jobs / server / worker)
 benchmarks/           ⏱️ speed + cost measurements
-tests/                ✅ 1352 passing tests (3 known macOS-only failures)
+tests/                ✅ 1353 passing tests (3 known macOS-only failures)
 ```
 
 ## 🙏 Attribution
