@@ -54,6 +54,36 @@ def default_trade_date() -> str:
     return BASELINE_TRADE_DATE
 
 
+def merged_config(overrides: dict | None = None) -> dict:
+    """DEFAULT_CONFIG with ``overrides`` merged over it.
+
+    The merge is shallow: a nested override (say ``data_vendors``) replaces the
+    whole default mapping rather than merging into it, and DEFAULT_CONFIG
+    itself is never mutated.
+    """
+    return {**DEFAULT_CONFIG, **(overrides or {})}
+
+
+def failure_envelope(
+    ticker: str, trade_date: str, exc: Exception, overrides: dict | None = None
+) -> dict:
+    """The envelope written when a run could not reach an LLM or vendor.
+
+    Shared by ``main`` and the cost matrix so both record a failure the same
+    way. Call it from inside the ``except`` block: ``traceback`` reads the
+    active exception.
+    """
+    return {
+        "ticker": ticker,
+        "trade_date": trade_date,
+        "config_overrides": dict(overrides or {}),
+        "ok": False,
+        "error": f"{type(exc).__name__}: {exc}",
+        "traceback": traceback.format_exc(limit=10),
+        "hint": "Baseline needs LLM + vendor API keys in env (see .env.example).",
+    }
+
+
 def summarize_usage(handler: UsageMetadataCallbackHandler) -> dict:
     total = {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
     by_model: dict[str, dict] = {}
@@ -69,10 +99,10 @@ def summarize_usage(handler: UsageMetadataCallbackHandler) -> dict:
     return {"total": total, "by_model": by_model}
 
 
-def run(ticker: str, trade_date: str) -> dict:
+def run(ticker: str, trade_date: str, overrides: dict | None = None) -> dict:
     usage = UsageMetadataCallbackHandler()
     trade_date = trade_date or default_trade_date()
-    config = DEFAULT_CONFIG.copy()
+    config = merged_config(overrides)
 
     ta = AlphaDeskGraph(debug=False, config=config, callbacks=[usage])
     init_state = ta.create_run_state(ticker, trade_date)
@@ -126,6 +156,7 @@ def run(ticker: str, trade_date: str) -> dict:
         "ticker": ticker,
         "trade_date": trade_date,
         "alpha_desk_version": ta_version,
+        "config_overrides": dict(overrides or {}),
         "run_settings": ta.run_settings(),
         "wall_total_s": round(ended - started, 2),
         "phases": phases,
@@ -150,14 +181,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         result = run(ns.ticker, trade_date)
     except Exception as exc:  # keys missing, vendor/LLM down: record, don't block
-        result = {
-            "ticker": ns.ticker,
-            "trade_date": trade_date,
-            "ok": False,
-            "error": f"{type(exc).__name__}: {exc}",
-            "traceback": traceback.format_exc(limit=10),
-            "hint": "Baseline needs LLM + vendor API keys in env (see .env.example).",
-        }
+        result = failure_envelope(ns.ticker, trade_date, exc)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(result, indent=2)[:2000])
