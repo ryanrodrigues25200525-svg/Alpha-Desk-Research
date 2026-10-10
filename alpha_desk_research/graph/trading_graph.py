@@ -46,7 +46,8 @@ def _validate_trade_date(trade_date) -> str:
 # Config keys that do not change what a run writes: where it keeps its files,
 # whether it checkpoints, and how often it retries a provider.
 _NOT_IN_SIGNATURE = frozenset({
-    "results_dir", "data_cache_dir", "memory_log_path", "checkpoint_enabled", "llm_max_retries",
+    "results_dir", "data_cache_dir", "memory_log_path", "run_index_path",
+    "checkpoint_enabled", "llm_max_retries",
 })
 
 

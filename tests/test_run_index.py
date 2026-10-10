@@ -2,6 +2,7 @@
 
 import copy
 import json
+from pathlib import Path
 
 from alpha_desk_research.default_config import DEFAULT_CONFIG
 from alpha_desk_research.graph.trading_graph import AlphaDeskGraph
@@ -87,12 +88,29 @@ def test_a_default_construction_uses_the_live_configuration():
 
 
 def test_the_index_path_comes_from_the_environment_like_its_siblings(tmp_path, monkeypatch):
-    from alpha_desk_research.default_config import DEFAULT_CONFIG, build_default_config
+    from alpha_desk_research.default_config import build_default_config
 
     monkeypatch.setenv("ALPHA_DESK_RUN_INDEX_PATH", str(tmp_path / "custom.jsonl"))
-    assert DEFAULT_CONFIG["run_index_path"].endswith("runs.jsonl")  # import-time default
     assert build_default_config()["run_index_path"] == str(tmp_path / "custom.jsonl")
     assert default_index_path(build_default_config()) == tmp_path / "custom.jsonl"
+
+    # Unset, the key carries no concrete location: a run's index follows its log.
+    monkeypatch.delenv("ALPHA_DESK_RUN_INDEX_PATH")
+    unset = build_default_config()
+    assert not unset["run_index_path"]
+    assert default_index_path(unset) == Path(unset["memory_log_path"]).with_name("runs.jsonl")
+
+
+def test_a_redirected_log_keeps_its_index_beside_it_not_at_the_live_path(tmp_path, monkeypatch):
+    """The index follows the memory log, so a run with its own log gets its own
+    index rather than writing into the live ``~/.alpha-desk`` index."""
+    from alpha_desk_research.default_config import build_default_config
+
+    monkeypatch.delenv("ALPHA_DESK_RUN_INDEX_PATH", raising=False)
+    monkeypatch.setenv("ALPHA_DESK_MEMORY_LOG_PATH", str(tmp_path / "run" / "trading_memory.md"))
+    config = build_default_config()
+    assert not config["run_index_path"]
+    assert default_index_path(config) == tmp_path / "run" / "runs.jsonl"
 
 
 def test_a_run_with_no_decision_is_still_counted(tmp_path):

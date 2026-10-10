@@ -76,6 +76,18 @@ def _config(tmp_path):
 
 
 @pytest.mark.unit
+def test_a_run_keeps_its_index_in_its_own_directory(tmp_path, monkeypatch):
+    """A global ALPHA_DESK_RUN_INDEX_PATH must not pull a backtest's index into
+    the live one: the run pins its own index inside the run it belongs to."""
+    monkeypatch.setenv("ALPHA_DESK_RUN_INDEX_PATH", str(tmp_path / "live_index.jsonl"))
+    result = run_backtest(["NVDA"], ["2026-01-05"], _config(tmp_path))
+    run_index_path = _FakeGraph.instances[-1].config["run_index_path"]
+    expected = tmp_path / "results" / "backtest" / result.run_id / "runs.jsonl"
+    assert run_index_path == str(expected)
+    assert run_index_path != str(tmp_path / "live_index.jsonl")
+
+
+@pytest.mark.unit
 def test_the_live_memory_log_is_never_written(tmp_path):
     config = _config(tmp_path)
     result = run_backtest(["NVDA"], ["2026-01-05", "2026-01-12"], config)
