@@ -3,6 +3,7 @@
 Uses an injected fake graph so no test touches the network or an LLM.
 """
 
+import json
 import threading
 import time
 from contextlib import nullcontext
@@ -10,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+from alpha_desk_research.memory import TradingMemoryLog
 from mcp_server import jobs
 from mcp_server.server import (
     DEPTH_PRESETS,
@@ -19,6 +21,7 @@ from mcp_server.server import (
     job_status,
     list_reports,
     submit_research_job,
+    tool_get_scoreboard,
 )
 from mcp_server.worker import restart_worker, start_worker, stop_worker
 
@@ -31,6 +34,18 @@ REPORT_KEYS = [
     "trader_investment_plan",
     "final_trade_decision",
 ]
+
+# The MCP surface, pinned by name: a new tool is a deliberate edit to this list,
+# not a silent widening of what an agent can call.
+TOOL_NAMES = (
+    "submit_research_job",
+    "job_status",
+    "get_report",
+    "list_reports",
+    "cancel_research_job",
+    "get_decision",
+    "get_scoreboard",
+)
 
 
 class _FakePropagator:
@@ -302,3 +317,68 @@ def test_get_decision(worker):
     assert "# final_trade_decision for AAPL" in decision
     with pytest.raises(ValueError):
         get_decision("job_does_not_exist")
+
+
+def _seeded_log(tmp_path):
+    """A memory log with settled decisions, written through the log's own writer.
+
+    Two outcomes over a Buy and a Sell put a rate on the rating rows, and one
+    decision is left pending so the board says how much of the log is settled.
+    """
+    log = TradingMemoryLog({"memory_log_path": str(tmp_path / "m.md")})
+    rows = [
+        ("NVDA", "2026-01-05", "Rating: Buy\n\nbuy it", (0.10, 0.04)),
+        ("AAPL", "2026-01-05", "Rating: Sell\n\nsell it", (0.05, 0.03)),
+        ("TSLA", "2026-01-12", "Rating: Buy\n\nbuy it", None),
+    ]
+    for ticker, date, decision, outcome in rows:
+        log.store_decision(ticker, date, decision)
+        if outcome is not None:
+            log.update_with_outcome(ticker, date, outcome[0], outcome[1], 5, "note", "2026-02-01")
+    return tmp_path / "m.md"
+
+
+class _RecordingMCP:
+    """A stand-in for FastMCP that records the tools ``build_app`` registers."""
+
+    def __init__(self, name):
+        self.name = name
+        self.tools = {}
+
+    def tool(self, name=None):
+        def register(fn):
+            self.tools[name] = fn
+            return fn
+
+        return register
+
+
+def test_build_app_registers_the_pinned_tool_set(monkeypatch):
+    import sys
+    import types
+
+    from mcp_server.server import build_app
+
+    monkeypatch.setitem(sys.modules, "fastmcp", types.SimpleNamespace(FastMCP=_RecordingMCP))
+
+    assert tuple(build_app().tools) == TOOL_NAMES
+
+
+def test_the_mcp_tool_agrees_with_the_cli_json(tmp_path, monkeypatch):
+    """Acceptance criterion 4: same log, same numbers, whoever asks."""
+    monkeypatch.setenv("ALPHA_DESK_MEMORY_LOG_PATH", str(_seeded_log(tmp_path)))
+    from typer.testing import CliRunner
+
+    from cli.main import app
+
+    cli_out = json.loads(CliRunner().invoke(app, ["scoreboard", "--json"]).stdout)
+    assert json.loads(tool_get_scoreboard())["overall"] == cli_out["overall"]
+
+
+def test_the_mcp_tool_does_not_raise_on_an_empty_log(monkeypatch, tmp_path):
+    monkeypatch.setenv("ALPHA_DESK_MEMORY_LOG_PATH", str(tmp_path / "none.md"))
+    assert json.loads(tool_get_scoreboard())["overall"]["count"] == 0
+
+
+def test_an_invalid_dates_or_group_returns_an_error_string_not_a_traceback():
+    assert tool_get_scoreboard(since="not-a-date").startswith("ERROR:")

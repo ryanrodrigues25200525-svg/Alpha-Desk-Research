@@ -204,6 +204,44 @@ def get_decision(job_id: str) -> str:
     raise ValueError(f"job {job_id} has no decision recorded")
 
 
+def get_scoreboard(
+    ticker: str | None = None,
+    since: str | None = None,
+    group_by: str | None = None,
+) -> dict:
+    """The desk's settled track record as data; raises ``ValueError`` on bad input.
+
+    Reads the log and the run index the way the CLI's ``scoreboard`` command does,
+    so the two surfaces answer with the same numbers. ``group_by`` is a
+    comma-separated list of dimensions; ``None`` asks for the default rating one.
+    """
+    from alpha_desk_research.default_config import build_default_config
+    from alpha_desk_research.memory import TradingMemoryLog
+    from alpha_desk_research.memory.run_index import RunIndex
+    from alpha_desk_research.scoreboard import as_dict, build_scoreboard
+
+    # The log is resolved now rather than from the import-time DEFAULT_CONFIG, so
+    # ALPHA_DESK_MEMORY_LOG_PATH set for this process is the log that is read.
+    config = build_default_config()
+    index = RunIndex(config)
+    records, malformed = index.load()
+    dimensions = (
+        tuple(part.strip() for part in group_by.split(",") if part.strip())
+        if group_by is not None
+        else ("rating",)
+    )
+    board = build_scoreboard(
+        TradingMemoryLog(config).load_entries(),
+        records,
+        malformed=malformed,
+        index_present=index.path.exists(),
+        ticker=ticker,
+        since=since,
+        group_by=dimensions,
+    )
+    return as_dict(board)
+
+
 def _err(exc: Exception) -> str:
     return f"ERROR: {exc}"
 
@@ -255,8 +293,19 @@ def tool_list_reports(ticker: str | None = None) -> str:
         return _err(exc)
 
 
+def tool_get_scoreboard(
+    ticker: str | None = None,
+    since: str | None = None,
+    group_by: str | None = None,
+) -> str:
+    try:
+        return json.dumps(get_scoreboard(ticker, since, group_by))
+    except Exception as exc:
+        return _err(exc)
+
+
 def build_app():
-    """The FastMCP stdio app with the six research tools."""
+    """The FastMCP stdio app with the seven research tools."""
     from fastmcp import FastMCP
 
     app = FastMCP("alpha-desk-research")
@@ -295,6 +344,15 @@ def build_app():
     def _decision(job_id: str) -> str:
         """Just the final trade decision text for a job."""
         return tool_get_decision(job_id)
+
+    @app.tool(name="get_scoreboard")
+    def _scoreboard(
+        ticker: str | None = None,
+        since: str | None = None,
+        group_by: str | None = None,
+    ) -> str:
+        """The desk's settled track record: what its calls earned, as JSON."""
+        return tool_get_scoreboard(ticker, since, group_by)
 
     return app
 
