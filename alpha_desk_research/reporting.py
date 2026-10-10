@@ -10,6 +10,7 @@ from datetime import datetime
 from pathlib import Path
 
 from alpha_desk_research.agents.rating import run_rating
+from alpha_desk_research.scoreboard import Scoreboard
 
 
 def analyst_names(keys) -> list[str]:
@@ -90,12 +91,14 @@ def _report_parts(final_state: dict) -> list[tuple[str, str, list[tuple[str, str
 
 
 def write_report_tree(final_state: dict, ticker: str, save_path, settings: dict | None = None,
-                      html: bool = True) -> Path:
+                      html: bool = True, scoreboard: Scoreboard | None = None) -> Path:
     """Save a completed run's reports to ``save_path``; return the complete-report path.
 
     ``settings`` (``AlphaDeskGraph.run_settings()``) adds what produced the run
     to the report's header. ``html`` also writes ``complete_report.html``, one
-    self-contained page of the same report (#1419).
+    self-contained page of the same report (#1419); ``scoreboard`` adds the
+    desk's track record to that page. The markdown tree never carries the
+    board, and a page written without one is unchanged.
     """
     save_path = Path(save_path)
     save_path.mkdir(parents=True, exist_ok=True)
@@ -115,6 +118,7 @@ def write_report_tree(final_state: dict, ticker: str, save_path, settings: dict 
         from alpha_desk_research.report_html import render_report
 
         (save_path / "complete_report.html").write_text(
-            render_report(ticker, final_state, settings, parts), encoding="utf-8"
+            render_report(ticker, final_state, settings, parts, scoreboard=scoreboard),
+            encoding="utf-8",
         )
     return save_path / "complete_report.md"

@@ -19,6 +19,7 @@ from alpha_desk_research.memory import TradingMemoryLog, settlement
 from alpha_desk_research.memory.reflection import Reflector
 from alpha_desk_research.memory.run_index import RunIndex, RunRecord
 from alpha_desk_research.reporting import write_report_tree
+from alpha_desk_research.scoreboard import build_scoreboard
 
 from .checkpointer import checkpoint_step, clear_checkpoint, get_checkpointer, thread_id
 from .conditional_logic import ConditionalLogic
@@ -281,11 +282,26 @@ class AlphaDeskGraph:
 
         Programmatic callers get the same on-disk reports the CLI produces. Pass
         an explicit ``save_path`` or let it default under ``results_dir``; the
-        report is also written as one HTML page unless ``html`` is False.
+        report is also written as one HTML page unless ``html`` is False, and
+        that page carries the desk's track record.
         """
         if save_path is None:
             save_path = self.default_report_path(ticker)
-        return write_report_tree(final_state, ticker, save_path, settings=self.run_settings(), html=html)
+        scoreboard = None
+        if html:
+            # The desk's record, not this run's ticker's: the whole log grouped
+            # by rating. An optional section never loses the report it sits in.
+            try:
+                records, malformed = self.run_index.load()
+                scoreboard = build_scoreboard(
+                    self.memory_log.load_entries(), records,
+                    malformed=malformed, index_present=self.run_index.path.exists(),
+                    group_by=("rating",),
+                )
+            except Exception as exc:
+                logger.warning("Could not build the report's track record: %s", exc)
+        return write_report_tree(final_state, ticker, save_path, settings=self.run_settings(),
+                                 html=html, scoreboard=scoreboard)
 
     def default_report_path(self, ticker) -> Path:
         """Where a run's reports go unless told otherwise: under results_dir, stamped now."""

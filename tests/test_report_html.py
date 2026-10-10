@@ -8,7 +8,9 @@ import re
 
 import pytest
 
+from alpha_desk_research.memory import TradingMemoryLog
 from alpha_desk_research.reporting import write_report_tree
+from alpha_desk_research.scoreboard import build_scoreboard
 
 SETTINGS = {"version": "1.2.3", "llm_provider": "openai", "deep_think_llm": "gpt-6-sol",
             "quick_think_llm": "gpt-6-luna", "analysts": ["market", "news"], "max_debate_rounds": 1,
@@ -173,3 +175,65 @@ def test_the_packaged_logo_stays_inert(tmp_path):
     tags = set(re.findall(r"<\s*([a-zA-Z][\w:-]*)", logo))
     assert tags <= {"svg", "path", "rect", "circle", "g", "defs", "clipPath", "linearGradient", "stop"}
     assert not re.search(r"\son\w+\s*=|href|url\(|@import|javascript:|<!entity|<!doctype", logo, re.IGNORECASE)
+
+
+# The track record: what the desk's settled calls earned. It is the desk's own
+# record and not this ticker's, so the section says so, and a run with nothing to
+# score simply gets no section.
+def _undated_markdown(path):
+    """A written report without its generated-at line, which is a timestamp."""
+    return re.sub(r"- Generated: .*\n", "", path.read_text(encoding="utf-8"))
+
+
+def _undated_page(path):
+    """The written page without its Generated detail line, which is a timestamp."""
+    return re.sub(r'<div class="detail"><dt>Generated</dt><dd>[^<]*</dd></div>', "",
+                  (path / "complete_report.html").read_text(encoding="utf-8"))
+
+
+def _board(tmp_path):
+    """The desk's board: one settled Buy, written through the log's own writer."""
+    log = TradingMemoryLog({"memory_log_path": str(tmp_path / "memory.md")})
+    log.store_decision("NVDA", "2026-01-05", "Rating: Buy\n\nbuy it")
+    log.update_with_outcome("NVDA", "2026-01-05", 0.10, 0.04, 5, "note", "2026-02-01")
+    return build_scoreboard(log.load_entries(), [])
+
+
+@pytest.mark.unit
+def test_a_report_without_a_scoreboard_is_unchanged(tmp_path):
+    assert _undated_markdown(write_report_tree(_state(), "NVDA", tmp_path)) == \
+        _undated_markdown(write_report_tree(_state(), "NVDA", tmp_path / "b"))
+
+
+@pytest.mark.unit
+def test_the_page_without_a_track_record_is_unchanged(tmp_path):
+    write_report_tree(_state(), "NVDA", tmp_path / "a", settings=SETTINGS, scoreboard=None)
+    write_report_tree(_state(), "NVDA", tmp_path / "b", settings=SETTINGS)
+
+    assert _undated_page(tmp_path / "a") == _undated_page(tmp_path / "b")
+
+
+@pytest.mark.unit
+def test_the_page_gains_a_track_record_section_when_data_exists(tmp_path):
+    write_report_tree(_state(), "NVDA", tmp_path, html=True, scoreboard=_board(tmp_path))
+    page = (tmp_path / "complete_report.html").read_text(encoding="utf-8")
+
+    assert "Track record" in page and "mean alpha" in page
+    main = page[page.index("<main>"):page.index("</main>")]
+    assert main.index('<section id="s1"') < main.index("<h2>Track record</h2>")   # after the sections
+    nav = page[page.index("<nav"):page.index("</nav>")]
+    assert 'href="#track-record"' not in nav                                     # and no nav entry
+    assert "<pre>overall: n=1," in page
+    assert "The desk's settled decisions, overall and by rating." in page
+
+
+@pytest.mark.unit
+def test_the_track_record_text_cannot_inject_markup(tmp_path):
+    hostile = {"date": "2026-01-05", "ticker": "NVDA", "rating": "<i>Buy</i>", "pending": False,
+               "raw": "+4.0%", "alpha": "+4.0%", "holding": "5", "resolved": "2026-02-01",
+               "decision": "Rating: Buy", "reflection": ""}
+    write_report_tree(_state(), "NVDA", tmp_path, settings=SETTINGS, html=True,
+                      scoreboard=build_scoreboard([hostile], []))
+
+    page = (tmp_path / "complete_report.html").read_text(encoding="utf-8")
+    assert "<i>Buy</i>" not in page and "&lt;i&gt;Buy&lt;/i&gt;" in page

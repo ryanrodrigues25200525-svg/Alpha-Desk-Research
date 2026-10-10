@@ -1,12 +1,15 @@
 """Report parity: the shared writer produces the report tree for the CLI and the
 programmatic API alike (#1037)."""
 
+import logging
 import re
 from types import SimpleNamespace
 
 import pytest
 
 from alpha_desk_research.graph.trading_graph import AlphaDeskGraph
+from alpha_desk_research.memory import TradingMemoryLog
+from alpha_desk_research.memory.run_index import RunIndex
 from alpha_desk_research.reporting import write_report_tree
 
 
@@ -133,3 +136,57 @@ def test_the_header_names_the_analysts_as_users_select_them(tmp_path):
     page = (tmp_path / "complete_report.html").read_text(encoding="utf-8")
     fields = re.findall(r'<span class="field">([^<]*)</span>', page)
     assert {"market", "sentiment", "news"} <= set(fields) and "social" not in page
+
+
+# The track record on the page: save_reports builds it from the run's own log and
+# index, so every CLI run and every MCP job picks it up without a caller change.
+def _graph(tmp_path, memory_log, run_index=None):
+    """A graph with only what save_reports reads, as the tests above build one."""
+    graph = object.__new__(AlphaDeskGraph)
+    graph.config, graph.run_settings = {"results_dir": str(tmp_path)}, lambda: SETTINGS
+    graph.memory_log, graph.run_index = memory_log, run_index
+    return graph
+
+
+def _unreadable_log():
+    raise RuntimeError("the log is unreadable")
+
+
+@pytest.mark.unit
+def test_save_reports_puts_the_desk_s_track_record_on_the_page(tmp_path):
+    config = {"results_dir": str(tmp_path), "memory_log_path": str(tmp_path / "memory.md")}
+    log = TradingMemoryLog(config)
+    log.store_decision("AAPL", "2026-01-05", "Rating: Buy\n\nbuy it")
+    log.update_with_outcome("AAPL", "2026-01-05", 0.10, 0.04, 5, "note", "2026-02-01")
+
+    out = _graph(tmp_path, log, RunIndex(config)).save_reports(_state(), "AAPL", save_path=tmp_path)
+
+    assert "Track record" not in out.read_text(encoding="utf-8")  # the markdown never carries it
+    page = (tmp_path / "complete_report.html").read_text(encoding="utf-8")
+    assert "<h2>Track record</h2>" in page and "mean alpha +4.00%" in page
+
+
+@pytest.mark.unit
+def test_a_track_record_that_cannot_be_built_still_writes_the_report(tmp_path, caplog):
+    graph = _graph(tmp_path, SimpleNamespace(load_entries=_unreadable_log),
+                   SimpleNamespace(load=lambda: ([], 0)))
+
+    with caplog.at_level(logging.WARNING):
+        out = graph.save_reports(_state(), "AAPL", save_path=tmp_path)
+
+    page = (tmp_path / "complete_report.html").read_text(encoding="utf-8")
+    assert out.exists() and "MKT" in page  # the report is whole, minus its optional section
+    assert "Track record" not in page
+    assert any("track record" in record.getMessage() for record in caplog.records)
+
+
+@pytest.mark.unit
+def test_the_board_is_not_built_at_all_when_html_is_declined(tmp_path, caplog):
+    graph = _graph(tmp_path, SimpleNamespace(load_entries=_unreadable_log),
+                   SimpleNamespace(load=lambda: ([], 0)))
+
+    with caplog.at_level(logging.WARNING):
+        out = graph.save_reports(_state(), "AAPL", save_path=tmp_path, html=False)
+
+    assert out.exists() and caplog.records == []
+    assert not (tmp_path / "complete_report.html").exists()

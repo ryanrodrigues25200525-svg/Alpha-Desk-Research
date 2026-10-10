@@ -14,6 +14,7 @@ from markdown_it import MarkdownIt
 
 from alpha_desk_research.agents.rating import run_rating
 from alpha_desk_research.reporting import analyst_names
+from alpha_desk_research.scoreboard import Scoreboard, render
 
 # Ratings by direction, so the page can show which way the call leans.
 _TONE = {"Buy": "up", "Overweight": "up", "Hold": "level", "Underweight": "down", "Sell": "down"}
@@ -245,8 +246,27 @@ def _run_details(final_state: dict, settings: dict | None) -> list[tuple[str, st
     return details
 
 
-def render_report(ticker: str, final_state: dict, settings: dict | None, parts) -> str:
-    """The report page: title and rating, what produced the run, contents, sections."""
+def _track_record(scoreboard: Scoreboard) -> str:
+    """The track record section: the desk's record, not this report's ticker's.
+
+    The board's own rendering is the section's text, escaped into a ``<pre>``;
+    the caption above it says what the board covers, since the page is titled
+    with one ticker.
+    """
+    return (
+        '<section id="track-record"><h2>Track record</h2>'
+        "<p>The desk's settled decisions, overall and by rating.</p>"
+        f"<pre>{escape(render(scoreboard, group_by=('rating',)))}</pre></section>"
+    )
+
+
+def render_report(ticker: str, final_state: dict, settings: dict | None, parts,
+                  scoreboard: Scoreboard | None = None) -> str:
+    """The report page: title and rating, what produced it, contents, sections.
+
+    ``scoreboard`` adds the desk's track record as the last section, after the
+    numbered ones; a page rendered without one is unchanged.
+    """
     md = _markdown()
     rating = run_rating(final_state) if final_state.get("final_trade_decision") else ""
     tone = _TONE.get(rating, "review")
@@ -274,6 +294,8 @@ def render_report(ticker: str, final_state: dict, settings: dict | None, parts) 
         for m, (agent, _filename, text) in enumerate(written, 1):
             body.append(f'<h3 id="s{n}-{m}">{escape(agent)}</h3>\n{_render_agent_text(md, text)}')
         body.append("</section>")
+    if scoreboard is not None:
+        body.append(_track_record(scoreboard))
 
     page_title = " ".join(x for x in (ticker, date, rating) if x)
     return f"""<!doctype html>
