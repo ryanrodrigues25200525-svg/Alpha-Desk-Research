@@ -13,7 +13,7 @@ from types import SimpleNamespace
 import pandas as pd
 import pytest
 
-from tradingagents.dataflows.vendors.yahoo import ohlcv
+from alpha_desk_research.dataflows.vendors.yahoo import ohlcv
 
 NOW = pd.Timestamp("2026-07-18 12:00")
 STALE = ohlcv.OHLCV_CACHE_TTL_SECONDS + 60

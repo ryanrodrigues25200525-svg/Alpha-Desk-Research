@@ -6,7 +6,12 @@ header, so the rating is read deterministically; no second model call is made.
 
 import pytest
 
-from tradingagents.agents.rating import RATING_REVIEW, RATINGS_5_TIER, extract_rating, parse_rating
+from alpha_desk_research.agents.rating import (
+    RATING_REVIEW,
+    RATINGS_5_TIER,
+    extract_rating,
+    parse_rating,
+)
 
 # ---------------------------------------------------------------------------
 # Heuristic parser

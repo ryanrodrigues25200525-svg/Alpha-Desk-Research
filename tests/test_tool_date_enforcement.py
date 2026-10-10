@@ -15,8 +15,8 @@ from langchain_core.messages import AIMessage
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
 
-from tradingagents.agents import tools
-from tradingagents.dataflows.date_window import as_of, as_of_window
+from alpha_desk_research.agents import tools
+from alpha_desk_research.dataflows.date_window import as_of, as_of_window
 
 TRADE_DATE = "2026-08-14"
 
@@ -157,16 +157,16 @@ def test_a_window_whose_start_is_not_a_date_is_refused():
 @pytest.mark.unit
 @pytest.mark.parametrize("bad", ["2026-9-10", "2026-09-10 00:00", "Sept 10", None])
 def test_propagate_rejects_a_non_canonical_date(bad):
-    from tradingagents.graph.trading_graph import TradingAgentsGraph
+    from alpha_desk_research.graph.trading_graph import AlphaDeskGraph
 
     with pytest.raises(ValueError, match="YYYY-MM-DD"):
-        object.__new__(TradingAgentsGraph).propagate("AAPL", bad)
+        object.__new__(AlphaDeskGraph).propagate("AAPL", bad)
 
 
 @pytest.mark.unit
 def test_propagate_rejects_a_future_date(monkeypatch):
-    import tradingagents.graph.trading_graph as tg
+    import alpha_desk_research.graph.trading_graph as tg
 
     monkeypatch.setattr(tg, "get_current_date", lambda: "2026-09-10")
     with pytest.raises(ValueError, match="future"):
-        object.__new__(tg.TradingAgentsGraph).propagate("AAPL", "2026-09-11")
+        object.__new__(tg.AlphaDeskGraph).propagate("AAPL", "2026-09-11")

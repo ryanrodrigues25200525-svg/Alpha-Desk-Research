@@ -12,7 +12,7 @@ from __future__ import annotations
 import pytest
 
 import cli.run as cli_run
-from tradingagents.agents.rating import RATING_REVIEW, extract_rating, parse_rating
+from alpha_desk_research.agents.rating import RATING_REVIEW, extract_rating, parse_rating
 
 INVERTED = ("The aggressive analyst pushed hard for a Buy on the AI backlog, but the "
             "conservative case on margin compression carried the debate. "
@@ -71,7 +71,7 @@ def test_the_scale_quoted_in_a_prompt_does_not_become_the_rating():
 
 @pytest.mark.unit
 def test_the_memory_log_records_review_rather_than_a_tradeable_hold(tmp_path):
-    from tradingagents.memory import TradingMemoryLog
+    from alpha_desk_research.memory import TradingMemoryLog
 
     log = TradingMemoryLog({"memory_log_path": str(tmp_path / "m.md")})
     log.store_decision("NVDA", "2026-01-05", REFUSAL)
@@ -82,8 +82,8 @@ def test_the_memory_log_records_review_rather_than_a_tradeable_hold(tmp_path):
 
 @pytest.mark.unit
 def test_the_signal_and_the_log_agree_on_the_same_decision(tmp_path):
-    from tradingagents.agents.rating import parse_rating
-    from tradingagents.memory import TradingMemoryLog
+    from alpha_desk_research.agents.rating import parse_rating
+    from alpha_desk_research.memory import TradingMemoryLog
 
     log = TradingMemoryLog({"memory_log_path": str(tmp_path / "m.md")})
     for text in (INVERTED, REFUSAL, "**Rating**: Buy\n\nAccumulate."):
@@ -97,8 +97,8 @@ def test_the_signal_and_the_log_agree_on_the_same_decision(tmp_path):
 @pytest.mark.unit
 def test_an_unscored_decision_is_left_out_of_the_backtest_figures(tmp_path):
     """REVIEW has no direction, so it cannot count for or against the system."""
-    from tradingagents.backtest import summarize
-    from tradingagents.memory import TradingMemoryLog
+    from alpha_desk_research.backtest import summarize
+    from alpha_desk_research.memory import TradingMemoryLog
 
     log = TradingMemoryLog({"memory_log_path": str(tmp_path / "m.md")})
     log.store_decision("NVDA", "2026-01-05", "**Rating**: Buy\n\nx")
@@ -149,7 +149,7 @@ def test_the_cli_says_when_a_run_produced_no_usable_rating(monkeypatch, tmp_path
     fake = _Graph()
     fake.graph = fake
     fake.propagator = fake
-    monkeypatch.setattr(cli_run, "TradingAgentsGraph", lambda *a, **k: fake)
+    monkeypatch.setattr(cli_run, "AlphaDeskGraph", lambda *a, **k: fake)
     monkeypatch.setattr(cli_run, "create_layout", lambda: None)
     monkeypatch.setattr(cli_run, "update_display", lambda *a, **k: None)
     monkeypatch.setattr(cli_run, "Live", type("L", (), {"__init__": lambda s, *a, **k: None,
@@ -172,9 +172,9 @@ def test_the_cli_says_when_a_run_produced_no_usable_rating(monkeypatch, tmp_path
 
 @pytest.mark.unit
 @pytest.mark.parametrize("module, factory, must_name", [
-    ("tradingagents.agents.managers.portfolio_manager", "create_portfolio_manager", "Rating"),
-    ("tradingagents.agents.managers.research_manager", "create_research_manager", "Recommendation"),
-    ("tradingagents.agents.trader.trader", "create_trader", "Action"),
+    ("alpha_desk_research.agents.managers.portfolio_manager", "create_portfolio_manager", "Rating"),
+    ("alpha_desk_research.agents.managers.research_manager", "create_research_manager", "Recommendation"),
+    ("alpha_desk_research.agents.trader.trader", "create_trader", "Action"),
 ])
 def test_a_decision_prompt_states_the_shape_of_its_answer(module, factory, must_name):
     """The field descriptions live in the schema, which a provider without
@@ -220,7 +220,7 @@ def test_a_state_without_the_typed_rating_reads_it_from_the_decision():
     """A run finished by an older version and resumed from its checkpoint has
     no final_rating; every reader falls back the same way instead of one
     raising and another reporting REVIEW."""
-    from tradingagents.agents.rating import run_rating
+    from alpha_desk_research.agents.rating import run_rating
 
     assert run_rating({"final_rating": "Hold", "final_trade_decision": "**Rating**: Buy"}) == "Hold"
     assert run_rating({"final_trade_decision": "**Rating**: Sell\n\nExit."}) == "Sell"

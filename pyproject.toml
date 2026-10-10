@@ -38,7 +38,7 @@ mcp = [
     "fastmcp>=2.0",
 ]
 # Amazon Bedrock support (AWS SigV4 auth + boto3). Optional so the core install
-# stays lean: pip install "tradingagents[bedrock]".
+# stays lean: pip install "alpha-desk-research[bedrock]".
 bedrock = [
     "langchain-aws>=1.7.9",
 ]
@@ -48,14 +48,14 @@ alpha-desk = "cli.main:app"
 alpha-desk-mcp = "mcp_server.server:main"
 
 [tool.setuptools.dynamic]
-version = {attr = "tradingagents.__version__"}
+version = {attr = "alpha_desk_research.__version__"}
 
 [tool.setuptools.packages.find]
-include = ["tradingagents*", "cli*", "mcp_server*"]
+include = ["alpha_desk_research*", "cli*", "mcp_server*"]
 
 [tool.setuptools.package-data]
 cli = ["static/*"]
-tradingagents = ["assets/*.svg"]
+alpha_desk_research = ["assets/*.svg"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

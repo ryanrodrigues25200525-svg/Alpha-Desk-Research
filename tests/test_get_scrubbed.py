@@ -10,7 +10,7 @@ from unittest import mock
 import pytest
 import requests
 
-from tradingagents.dataflows.net import get_scrubbed
+from alpha_desk_research.dataflows.net import get_scrubbed
 
 # A fabricated value in the shape of a FRED key.
 _KEY = "deadbeefdeadbeefdeadbeefdeadbeef"

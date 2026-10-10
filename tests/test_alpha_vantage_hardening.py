@@ -10,10 +10,10 @@ import json
 
 import pytest
 
-import tradingagents.dataflows.net as net
-import tradingagents.dataflows.vendors.alpha_vantage.common as av
-import tradingagents.dataflows.vendors.alpha_vantage.fundamentals as avf
-import tradingagents.dataflows.vendors.alpha_vantage.stock as avs
+import alpha_desk_research.dataflows.net as net
+import alpha_desk_research.dataflows.vendors.alpha_vantage.common as av
+import alpha_desk_research.dataflows.vendors.alpha_vantage.fundamentals as avf
+import alpha_desk_research.dataflows.vendors.alpha_vantage.stock as avs
 
 
 class _FakeResponse:
@@ -69,9 +69,9 @@ def test_a_rejected_request_is_unavailable_not_data(monkeypatch):
     """Alpha Vantage answers a call it rejects with {"Error Message": ...}, for an
     unknown symbol and for a malformed call alike, so it says nothing about the
     instrument; served as data it reads as a one-line CSV or as "no data" (#1442)."""
-    from tradingagents.dataflows import router
-    from tradingagents.dataflows.config import set_config
-    from tradingagents.dataflows.errors import VendorUnavailableError
+    from alpha_desk_research.dataflows import router
+    from alpha_desk_research.dataflows.config import set_config
+    from alpha_desk_research.dataflows.errors import VendorUnavailableError
 
     monkeypatch.setenv("ALPHA_VANTAGE_API_KEY", "k-secret")
     body = '{"Error Message": "Invalid API call. Please retry or visit the documentation for TIME_SERIES_DAILY."}'
@@ -93,7 +93,7 @@ def test_a_rejected_request_is_unavailable_not_data(monkeypatch):
 ])
 def test_the_key_never_reaches_an_error_message(monkeypatch, body):
     """Alpha Vantage can echo the key in its notices; error text reaches logs and reports."""
-    from tradingagents.dataflows.errors import VendorError
+    from alpha_desk_research.dataflows.errors import VendorError
 
     monkeypatch.setenv("ALPHA_VANTAGE_API_KEY", "k-secret")
     monkeypatch.setattr(net.requests, "get", _patched_get(body))
@@ -177,7 +177,7 @@ def test_request_error_message_carries_no_key(monkeypatch):
 @pytest.mark.unit
 def test_global_news_omitted_optionals_use_the_configured_defaults(monkeypatch):
     """The tool passes None for an omitted look_back_days or limit (#1326)."""
-    from tradingagents.dataflows.vendors.alpha_vantage import news as alpha_vantage_news
+    from alpha_desk_research.dataflows.vendors.alpha_vantage import news as alpha_vantage_news
 
     monkeypatch.setattr(alpha_vantage_news, "get_config",
                         lambda: {"global_news_lookback_days": 3, "global_news_article_limit": 9})
@@ -194,7 +194,7 @@ def test_the_news_window_includes_the_analysis_day(monkeypatch):
     """time_to was midnight at the start of the end date, so everything
     published during the analysis day, the most decision-relevant day, was
     excluded. The yfinance path includes it."""
-    from tradingagents.dataflows.vendors.alpha_vantage import news as alpha_vantage_news
+    from alpha_desk_research.dataflows.vendors.alpha_vantage import news as alpha_vantage_news
 
     seen = {}
     monkeypatch.setattr(alpha_vantage_news, "_make_api_request",
@@ -211,8 +211,10 @@ def test_the_news_window_includes_the_analysis_day(monkeypatch):
 def test_an_indicator_this_vendor_lacks_lets_the_next_one_serve_it(indicator):
     """Returning prose counts as success to the router, so the chain stops at a
     vendor that cannot compute the indicator while the next one can."""
-    from tradingagents.dataflows.errors import VendorError
-    from tradingagents.dataflows.vendors.alpha_vantage import indicator as alpha_vantage_indicator
+    from alpha_desk_research.dataflows.errors import VendorError
+    from alpha_desk_research.dataflows.vendors.alpha_vantage import (
+        indicator as alpha_vantage_indicator,
+    )
 
     with pytest.raises(VendorError):
         alpha_vantage_indicator.get_indicator("AAPL", indicator, "2026-05-08", 30)
@@ -222,7 +224,7 @@ def test_an_indicator_this_vendor_lacks_lets_the_next_one_serve_it(indicator):
 def test_ticker_news_asks_for_only_as_many_articles_as_configured(monkeypatch):
     """The endpoint returns 50 articles with per-article sentiment arrays by
     default, and the whole payload went into the prompt."""
-    from tradingagents.dataflows.vendors.alpha_vantage import news as alpha_vantage_news
+    from alpha_desk_research.dataflows.vendors.alpha_vantage import news as alpha_vantage_news
 
     monkeypatch.setattr(alpha_vantage_news, "get_config", lambda: {"news_article_limit": 8})
     seen = {}

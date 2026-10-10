@@ -6,8 +6,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from tradingagents.graph.trading_graph import TradingAgentsGraph
-from tradingagents.reporting import write_report_tree
+from alpha_desk_research.graph.trading_graph import AlphaDeskGraph
+from alpha_desk_research.reporting import write_report_tree
 
 
 def _state():
@@ -44,14 +44,14 @@ def test_write_report_tree_creates_files(tmp_path):
 @pytest.mark.unit
 def test_save_reports_explicit_path(tmp_path):
     graph = SimpleNamespace(run_settings=lambda: SETTINGS)
-    out = TradingAgentsGraph.save_reports(graph, _state(), "AAPL", save_path=tmp_path)
+    out = AlphaDeskGraph.save_reports(graph, _state(), "AAPL", save_path=tmp_path)
     assert (tmp_path / "complete_report.md").exists()
     assert out == tmp_path / "complete_report.md"
 
 
 @pytest.mark.unit
 def test_save_reports_defaults_under_results_dir(tmp_path):
-    graph = object.__new__(TradingAgentsGraph)
+    graph = object.__new__(AlphaDeskGraph)
     graph.config = {"results_dir": str(tmp_path)}
     graph.run_settings = lambda: SETTINGS
     out = graph.save_reports(_state(), "AAPL")
@@ -68,7 +68,7 @@ def test_the_report_names_the_analysis_date_and_what_produced_it(tmp_path):
     header = write_report_tree(state, "NVDA", tmp_path, settings=SETTINGS).read_text().split("## ")[0]
 
     assert "Analysis date: 2026-09-23" in header
-    assert "TradingAgents 0.5.2" in header
+    assert "Alpha Desk Research 0.5.2" in header
     assert "openai, deep gpt-6-sol, quick gpt-6-luna" in header
     assert "Analysts: market, news" in header
     assert "research debate rounds 1, risk debate rounds 2" in header
@@ -77,9 +77,9 @@ def test_the_report_names_the_analysis_date_and_what_produced_it(tmp_path):
 
 @pytest.mark.unit
 def test_run_settings_record_the_run_without_endpoints_or_paths():
-    from tradingagents.graph.trading_graph import TradingAgentsGraph
+    from alpha_desk_research.graph.trading_graph import AlphaDeskGraph
 
-    graph = object.__new__(TradingAgentsGraph)
+    graph = object.__new__(AlphaDeskGraph)
     graph.selected_analysts = ("market", "news")
     graph.config = {"llm_provider": "openai", "deep_think_llm": "gpt-6-sol", "quick_think_llm": "gpt-6-luna",
                     "max_debate_rounds": 1, "max_risk_discuss_rounds": 1, "output_language": "English",
@@ -101,12 +101,12 @@ def test_a_partial_settings_dict_still_writes_the_report(tmp_path):
 
 @pytest.mark.unit
 def test_run_settings_name_the_version_of_the_running_code():
-    import tradingagents
-    from tradingagents.graph.trading_graph import TradingAgentsGraph
+    import alpha_desk_research
+    from alpha_desk_research.graph.trading_graph import AlphaDeskGraph
 
-    graph = object.__new__(TradingAgentsGraph)
+    graph = object.__new__(AlphaDeskGraph)
     graph.selected_analysts, graph.config = ("market",), {}
-    assert graph.run_settings()["version"] == tradingagents.__version__
+    assert graph.run_settings()["version"] == alpha_desk_research.__version__
 
 
 @pytest.mark.unit

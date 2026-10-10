@@ -14,7 +14,7 @@ from urllib.error import HTTPError
 
 import pytest
 
-from tradingagents.dataflows.vendors import stocktwits
+from alpha_desk_research.dataflows.vendors import stocktwits
 
 
 def _raise(exc):

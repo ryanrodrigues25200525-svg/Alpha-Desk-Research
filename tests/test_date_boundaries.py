@@ -9,9 +9,9 @@ from types import SimpleNamespace
 import pandas as pd
 import pytest
 
-import tradingagents.dataflows.vendors.yahoo.market as yfin
-from tradingagents.dataflows.config import set_config
-from tradingagents.dataflows.vendors.yahoo import ohlcv
+import alpha_desk_research.dataflows.vendors.yahoo.market as yfin
+from alpha_desk_research.dataflows.config import set_config
+from alpha_desk_research.dataflows.vendors.yahoo import ohlcv
 
 
 @pytest.mark.unit

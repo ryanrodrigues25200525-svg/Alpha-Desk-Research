@@ -1,10 +1,22 @@
 # Changelog
 
-All notable changes to TradingAgents are documented here.
+All notable changes to Alpha Desk Research are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Changes that need action when upgrading are listed under "Upgrading from" in their release.
+
+## [Unreleased]
+
+### Renamed
+
+- **The project is Alpha Desk Research throughout the code, not only in the UI.** The Python package is `alpha_desk_research` (was `tradingagents`), the graph class is `AlphaDeskGraph` (was `TradingAgentsGraph`), every env var is `ALPHA_DESK_*` (was `TRADINGAGENTS_*`), the data folder is `~/.alpha-desk` (was `~/.tradingagents`), the run-log folder is `AlphaDeskStrategy_logs`, the Docker services are `alpha-desk` / `alpha-desk-ollama` on the `alpha_desk_data` volume, and the benchmark result key is `alpha_desk_version`. The upstream credit is preserved: the report footer still links to the TradingAgents repository and credits Tauric Research, and the README's attribution, the SEC/Reddit/StockTwits user-agents and the CHANGELOG release links are unchanged.
+
+### Upgrading from 0.6.0
+
+- Import `alpha_desk_research`, not `tradingagents`.
+- Rename `TRADINGAGENTS_*` to `ALPHA_DESK_*` in `.env` files and scripts.
+- Move `~/.tradingagents` to `~/.alpha-desk` to keep the existing cache, reports and memory log.
 
 ## [0.6.0] — 2026-10-03
 
@@ -13,7 +25,7 @@ HTML reports, a provider per model tier, past decisions settled for every ticker
 ### Added
 
 - **HTML report.** A saved report also includes `complete_report.html`, the report as one page with its sections listed beside the text, that reads well in a browser, on a phone and in print. Answering the save question at the prompt also asks about the page and can open it in your browser; `--no-html` or `save_reports(..., html=False)` skips it. The page is self-contained: it loads nothing and runs nothing. (#1419)
-- **A provider per model tier.** The quick and deep models can run on different providers, for example the managers on Claude while the analysts run on OpenAI: set `deep_think_provider` or `quick_think_provider` (`TRADINGAGENTS_DEEP_THINK_PROVIDER`, `TRADINGAGENTS_QUICK_THINK_PROVIDER`) with the tier's model. The report header names each tier's provider. (#1440)
+- **A provider per model tier.** The quick and deep models can run on different providers, for example the managers on Claude while the analysts run on OpenAI: set `deep_think_provider` or `quick_think_provider` (`ALPHA_DESK_DEEP_THINK_PROVIDER`, `ALPHA_DESK_QUICK_THINK_PROVIDER`) with the tier's model. The report header names each tier's provider. (#1440)
 - **Past decisions settle alongside the analysts.** While a run's analysts work, every logged decision whose holding period has passed is settled, for any ticker, not only the one being analyzed. If settling fails, the run goes on and the report header says so. (#1428, #1445)
 - **Crypto on Reddit.** For a crypto ticker the Sentiment Analyst reads r/CryptoCurrency and r/CryptoMarkets, plus r/Bitcoin, r/ethereum or r/solana for those coins, instead of the stock subreddits. (#1461)
 - `settle_all_pending()` settles every due decision without running an analysis, for a scheduled job; it and `settle_pending()` return the decisions settled and any that could not be. (#1445)
@@ -57,11 +69,11 @@ and past runs served only what was known on their date.
 ### Added
 
 - **Parallel analysts.** The selected analysts run at the same time, so the analyst phase takes about as long as the slowest one; the CLI shows each analyst's progress and time as it finishes, and the debate starts when all reports are in. (#1255, #433)
-- **Unattended CLI runs.** Flags answer the per-run questions, and `TRADINGAGENTS_*` variables the rest, so a scheduled job or script asks nothing: `tradingagents --ticker NVDA --date 2026-09-26 --analysts market,news --save --no-show`. Without a terminal, a missing answer stops the run before it starts and names what to set. (#1127, #1133)
+- **Unattended CLI runs.** Flags answer the per-run questions, and `ALPHA_DESK_*` variables the rest, so a scheduled job or script asks nothing: `alpha-desk --ticker NVDA --date 2026-09-26 --analysts market,news --save --no-show`. Without a terminal, a missing answer stops the run before it starts and names what to set. (#1127, #1133)
 - **Reports record what produced them.** Each report opens with the analysis date, version, provider, models, analysts, rounds and data vendors; the state log keeps them as `run_settings`. (#752, #1197)
-- **Docker data folder.** `TRADINGAGENTS_DATA_DIR` keeps results, reports and the memory log in a host folder. (#865)
-- **A cap on an analyst's tool calls.** After `max_tool_rounds` rounds (default 20, `TRADINGAGENTS_MAX_TOOL_ROUNDS`) the analyst writes its report from what it has. (#1420)
-- `tradingagents backtest` shows each cell as it starts and the `--run-id` to continue; `--analysts` accepts `sentiment`.
+- **Docker data folder.** `ALPHA_DESK_DATA_DIR` keeps results, reports and the memory log in a host folder. (#865)
+- **A cap on an analyst's tool calls.** After `max_tool_rounds` rounds (default 20, `ALPHA_DESK_MAX_TOOL_ROUNDS`) the analyst writes its report from what it has. (#1420)
+- `alpha_desk_research backtest` shows each cell as it starts and the `--run-id` to continue; `--analysts` accepts `sentiment`.
 - Benchmarks for Taiwan, Korea, Singapore and the main European exchanges. (#1392)
 - Python 3.14 support; the Docker image runs Python 3.13.
 
@@ -75,7 +87,7 @@ and past runs served only what was known on their date.
 - Minimum versions: yfinance 1.7.0, langchain-core 1.6.5, langchain-openai 1.6.6, langchain-anthropic 1.7.4, langchain-google-genai 4.4.0, langgraph 1.2.12, langgraph-checkpoint-sqlite 3.1.1, langchain-aws 1.7.9 (`bedrock` extra).
 - Statements default to SEC EDGAR, then Yahoo (`fundamental_data = "sec_edgar,yfinance"`).
 - A past-dated run gets no Yahoo or Alpha Vantage statements or insider trades, which carry no filing date, and only the company's current name, marked as such.
-- The memory log is the `tradingagents.memory` package (was `tradingagents.decision_log`); settlement and reflection moved there from `tradingagents.graph`, and `Reflector` is no longer exported from `tradingagents.graph`.
+- The memory log is the `alpha_desk_research.memory` package (was `alpha_desk_research.decision_log`); settlement and reflection moved there from `alpha_desk_research.graph`, and `Reflector` is no longer exported from `alpha_desk_research.graph`.
 - `process_signal` is removed; the rating is `propagate()`'s second value or `final_state["final_rating"]`.
 - A rating is read only from its `Rating:` label; a free-text decision without one is `REVIEW`.
 - Data-layer functions take `as_of_date=` (was `curr_date=`); `build_instrument_context` and `resolve_instrument_context` take `trade_date=`.
@@ -112,10 +124,10 @@ fixes to run isolation, SEC EDGAR statements and historical runs.
 
 Some modules moved, and the old import paths are gone. Update imports as follows:
 
-- `tradingagents.dataflows.interface` is `tradingagents.dataflows.router`, and `dataflows.symbol_utils` is `dataflows.symbols`. `dataflows.utils` is gone: `get_current_date` is in `dataflows.date_window`, `safe_ticker_component` in `dataflows.symbols`, and `get_scrubbed` and `vendor_reachable` in `dataflows.net`.
-- Vendor modules live under `tradingagents.dataflows.vendors`: `yahoo` (`ohlcv`, `market`, `fundamentals`, `news`, `snapshot`, from the former `stockstats_utils`, `y_finance`, `yfinance_news` and `market_data_validator`), `alpha_vantage` (a package, from the `alpha_vantage_*` modules), and `sec_edgar`, `fred`, `polymarket`, `reddit`, `stocktwits`.
-- `tradingagents.agents.utils` is gone: the agent tools are in `agents.tools`, and `agent_utils`, `agent_states`, `rating` and `structured` are `agents.context`, `agents.state`, `agents.rating` and `agents.structured`.
-- The decision log is `tradingagents.decision_log` (was `agents.utils.memory`), and `cli.utils` is `cli.prompts`.
+- `alpha_desk_research.dataflows.interface` is `alpha_desk_research.dataflows.router`, and `dataflows.symbol_utils` is `dataflows.symbols`. `dataflows.utils` is gone: `get_current_date` is in `dataflows.date_window`, `safe_ticker_component` in `dataflows.symbols`, and `get_scrubbed` and `vendor_reachable` in `dataflows.net`.
+- Vendor modules live under `alpha_desk_research.dataflows.vendors`: `yahoo` (`ohlcv`, `market`, `fundamentals`, `news`, `snapshot`, from the former `stockstats_utils`, `y_finance`, `yfinance_news` and `market_data_validator`), `alpha_vantage` (a package, from the `alpha_vantage_*` modules), and `sec_edgar`, `fred`, `polymarket`, `reddit`, `stocktwits`.
+- `alpha_desk_research.agents.utils` is gone: the agent tools are in `agents.tools`, and `agent_utils`, `agent_states`, `rating` and `structured` are `agents.context`, `agents.state`, `agents.rating` and `agents.structured`.
+- The decision log is `alpha_desk_research.decision_log` (was `agents.utils.memory`), and `cli.utils` is `cli.prompts`.
 - `backtest.summarize` takes a `run_backtest` result or the path of a decision log, in place of a `TradingMemoryLog`.
 - Removed: `SignalProcessor` (the rating is parsed by `process_signal`), the `create_social_media_analyst` alias (use `create_sentiment_analyst`), `symbol_utils.is_yahoo_safe`, the unused `project_dir` config key, and the graph attributes `curr_state`, `ticker` and `log_states_dict`, which held the previous run's state.
 
@@ -138,7 +150,7 @@ Some modules moved, and the old import paths are gone. Update imports as follows
 - An unreachable Yahoo on insider transactions is reported as unavailable, not as a symbol without data.
 - A graph reused across runs, as in a backtest, no longer keeps every run's full state.
 - A checkpointed CLI run says whether it resumed or started fresh.
-- A blank path variable (`TRADINGAGENTS_RESULTS_DIR` and the like) keeps the default path.
+- A blank path variable (`ALPHA_DESK_RESULTS_DIR` and the like) keeps the default path.
 - StockTwits messages reach the prompt as plain text rather than HTML-escaped.
 - The test suite is independent of the developer's `.env`, time zone and network. (#1368, #1372)
 
@@ -157,7 +169,7 @@ portfolio as run input, and SEC EDGAR fundamentals served as filed.
 ### Highlights
 
 - **Fundamentals as filed.** SEC EDGAR serves US company statements as they stood on the run's date: a period that has ended but has not been filed is not served, and a figure restated later still reads as first reported. Keyless, opt-in via the vendor chain.
-- **Backtesting.** `run_backtest` runs the pipeline over a ticker and date grid into its own decision log, and `summarize` scores the settled cells; `tradingagents backtest` does the same from the CLI.
+- **Backtesting.** `run_backtest` runs the pipeline over a ticker and date grid into its own decision log, and `summarize` scores the settled cells; `alpha_desk_research backtest` does the same from the CLI.
 - **Portfolio context.** `propagate(..., portfolio=...)` and `--portfolio` let the trader, risk and portfolio agents size against real holdings. A run without one is never treated as a flat book.
 - **Decisions are recorded as made.** An unreadable decision is flagged for review everywhere instead of becoming a tradeable Hold, and a rating argued against is no longer read as the call.
 
@@ -184,7 +196,7 @@ portfolio as run input, and SEC EDGAR fundamentals served as filed.
 
 ### CLI
 
-- `tradingagents backtest`, with `--run-id` to continue an interrupted sweep. (#1234)
+- `alpha_desk_research backtest`, with `--run-id` to continue an interrupted sweep. (#1234)
 - The previous run's selections come back as prompt defaults. (#1236, #920)
 - A run with no readable rating says so; the live view no longer scrolls; messages that read like Python values are shown. (#649, #784)
 - The state log keeps non-ASCII readable. (#1081)
@@ -258,7 +270,7 @@ decision signals, working CLI checkpoint resume, and the GPT-5.6 / GLM-5.3 model
 
 ### Added
 
-- **Configurable output-token cap.** `max_tokens` / `TRADINGAGENTS_MAX_TOKENS`,
+- **Configurable output-token cap.** `max_tokens` / `ALPHA_DESK_MAX_TOKENS`,
   forwarded to every provider (Gemini as `max_output_tokens`), so a model that
   emits unbounded reasoning can be bounded instead of hanging. (#1204)
 - **Latest models.** Added the GPT-5.6 family (`gpt-5.6` / `gpt-5.6-terra` /
@@ -298,7 +310,7 @@ checkpoint identity, crypto sentiment sources, and configurable resilience.
 ### Added
 
 - **Configurable LLM retry budget.** `llm_max_retries` /
-  `TRADINGAGENTS_LLM_MAX_RETRIES` is forwarded to every provider, so a transient
+  `ALPHA_DESK_LLM_MAX_RETRIES` is forwarded to every provider, so a transient
   429 burst no longer aborts a run. (#1091, @yanggaome)
 - **Bedrock API-key auth.** `AWS_BEARER_TOKEN_BEDROCK` authenticates Amazon
   Bedrock without AWS access keys and takes precedence over an ambient
@@ -323,10 +335,10 @@ structured output.
   Adds NVIDIA NIM, Kimi, Groq, Mistral, and a native Amazon Bedrock client.
 - **Macro and prediction-market vendors.** FRED macro indicators and Polymarket
   event probabilities, surfaced to the news and macro analysts.
-- **Programmatic report output.** `TradingAgentsGraph.save_reports()` writes the
+- **Programmatic report output.** `AlphaDeskGraph.save_reports()` writes the
   same report tree the CLI produces, for headless and API runs. (#1037)
-- **Env-configurable reasoning depth** via `TRADINGAGENTS_OPENAI_REASONING_EFFORT`,
-  `TRADINGAGENTS_GOOGLE_THINKING_LEVEL`, and `TRADINGAGENTS_ANTHROPIC_EFFORT`,
+- **Env-configurable reasoning depth** via `ALPHA_DESK_OPENAI_REASONING_EFFORT`,
+  `ALPHA_DESK_GOOGLE_THINKING_LEVEL`, and `ALPHA_DESK_ANTHROPIC_EFFORT`,
   each gated to the models that accept it.
 
 ### Changed
@@ -336,7 +348,7 @@ structured output.
   resolution chain with no silent fallback to unselected vendors; a typed
   `VendorError` taxonomy; look-ahead-safe news windows; stale-OHLCV rejection;
   inclusive yfinance date ranges.
-- **Config precedence.** An explicit `TRADINGAGENTS_*` value or CLI flag now wins
+- **Config precedence.** An explicit `ALPHA_DESK_*` value or CLI flag now wins
   over interactive defaults for debate and risk round counts,
   `--checkpoint / --no-checkpoint`, and the Docker provider profile; invalid
   boolean env values fail loudly. (#975, #976, #977)
@@ -386,7 +398,7 @@ Thanks to everyone who shaped this release through code, design, and reports:
 - **Dual-region Qwen and GLM** with separate keys per region — international
   (`DASHSCOPE_API_KEY`, `ZHIPU_API_KEY`) and China (`DASHSCOPE_CN_API_KEY`,
   `ZHIPU_CN_API_KEY`), selectable via a secondary region prompt. (#758)
-- **`TRADINGAGENTS_*` env-var configurability for `DEFAULT_CONFIG`.** Override
+- **`ALPHA_DESK_*` env-var configurability for `DEFAULT_CONFIG`.** Override
   `llm_provider`, deep/quick model IDs, `backend_url`, `output_language`,
   debate-round counts, checkpoint flag, and benchmark ticker via `.env` with
   type-aware coercion (string / int / bool). (#602)
@@ -431,7 +443,7 @@ Thanks to everyone who shaped this release through code, design, and reports:
 - **Ticker prompt preserves exchange suffixes** (`.SH`, `.SZ`, `.SS`, `.HK`,
   `.T`, etc.) for A-share, HK, Tokyo, and other non-US flows. (#770)
 - **Docker permission errors** no longer block first-run write to
-  `~/.tradingagents/`. (#519, #627, #672, #771)
+  `~/.alpha-desk/`. (#519, #627, #672, #771)
 - **Config state no longer leaks between runs** when sub-dicts are mutated;
   `set_config` partial updates preserve sibling defaults. (#788)
 - **`max_recur_limit` config actually applies** — previously read but not
@@ -461,11 +473,11 @@ Thanks to everyone who shaped this release through code, design, and reports:
 - **LangGraph checkpoint resume** — opt-in via `--checkpoint`. State is saved
   after each node so crashed or interrupted runs resume from the last
   successful step. Per-ticker SQLite databases under
-  `~/.tradingagents/cache/checkpoints/`. `--clear-checkpoints` resets them. (#594)
+  `~/.alpha-desk/cache/checkpoints/`. `--clear-checkpoints` resets them. (#594)
 - **Persistent decision log** replacing the per-agent BM25 memory. Decisions
   are stored automatically at the end of `propagate()`; the next same-ticker
   run resolves prior pending entries with realised return, alpha vs SPY, and
-  a one-paragraph reflection. Override path with `TRADINGAGENTS_MEMORY_LOG_PATH`.
+  a one-paragraph reflection. Override path with `ALPHA_DESK_MEMORY_LOG_PATH`.
   Optional `memory_log_max_entries` config caps resolved entries; pending
   entries are never pruned. (#578, #563, #564, #579)
 - **DeepSeek, Qwen (Alibaba DashScope), GLM (Zhipu), and Azure OpenAI**
@@ -490,7 +502,7 @@ Thanks to everyone who shaped this release through code, design, and reports:
   overriding `backend_url`. The CLI flow is unaffected.
 - All file I/O passes explicit `encoding="utf-8"` so Windows users no longer
   hit `UnicodeEncodeError` with the cp1252 default. (#543, #550, #576)
-- Cache and log directories moved to `~/.tradingagents/` to resolve Docker
+- Cache and log directories moved to `~/.alpha-desk/` to resolve Docker
   permission issues. (#519)
 - `SignalProcessor` reads the rating from the Portfolio Manager's rendered
   markdown via a deterministic heuristic — no extra LLM call.

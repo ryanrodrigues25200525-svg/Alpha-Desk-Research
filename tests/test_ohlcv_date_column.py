@@ -11,7 +11,7 @@ import warnings
 import pandas as pd
 import pytest
 
-from tradingagents.dataflows.vendors.yahoo import ohlcv
+from alpha_desk_research.dataflows.vendors.yahoo import ohlcv
 
 
 def _ohlcv(date_col: str) -> pd.DataFrame:

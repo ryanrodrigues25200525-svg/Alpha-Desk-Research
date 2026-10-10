@@ -12,13 +12,13 @@ from __future__ import annotations
 import pytest
 
 import cli.run as cli_run
-from tradingagents.graph.trading_graph import TradingAgentsGraph
-from tradingagents.memory import TradingMemoryLog
+from alpha_desk_research.graph.trading_graph import AlphaDeskGraph
+from alpha_desk_research.memory import TradingMemoryLog
 
 
 def _bare_graph(tmp_path):
     """A graph without __init__ (no LLM clients), wired to a temp log."""
-    graph = object.__new__(TradingAgentsGraph)
+    graph = object.__new__(AlphaDeskGraph)
     graph.config = {"memory_log_path": str(tmp_path / "trading_memory.md")}
     graph.memory_log = TradingMemoryLog(graph.config)
     graph._log_state = lambda *a: None   # these tests are about the memory log
@@ -122,7 +122,7 @@ def _run_cli(monkeypatch, tmp_path, fake):
     from cli.models import AnalystType
 
     buffer = _FakeBuffer()
-    monkeypatch.setattr(cli_run, "TradingAgentsGraph", lambda *a, **k: fake)
+    monkeypatch.setattr(cli_run, "AlphaDeskGraph", lambda *a, **k: fake)
     monkeypatch.setattr(cli_run, "message_buffer", buffer)
     monkeypatch.setattr(cli_run, "create_layout", lambda: None)
     monkeypatch.setattr(cli_run, "update_display", lambda *a, **k: None)
@@ -172,7 +172,7 @@ def test_a_run_without_checkpointing_says_nothing_about_resuming(tmp_path, monke
 @pytest.mark.unit
 def test_recording_a_run_writes_its_state_log(tmp_path):
     """The CLI records a run through record_decision, so the state log is written there."""
-    graph = object.__new__(TradingAgentsGraph)
+    graph = object.__new__(AlphaDeskGraph)
     graph.config = {"results_dir": str(tmp_path), "llm_provider": "openai", "deep_think_llm": "d",
                     "quick_think_llm": "q", "max_debate_rounds": 1, "max_risk_discuss_rounds": 1,
                     "output_language": "English", "data_vendors": {}, "tool_vendors": {}}
@@ -189,4 +189,4 @@ def test_recording_a_run_writes_its_state_log(tmp_path):
 
     graph.record_decision("NVDA", "2026-09-23", state)
 
-    assert list(tmp_path.glob("NVDA/TradingAgentsStrategy_logs/full_states_log_2026-09-23.json"))
+    assert list(tmp_path.glob("NVDA/AlphaDeskStrategy_logs/full_states_log_2026-09-23.json"))

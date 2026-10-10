@@ -7,7 +7,7 @@ chat client; when unset the provider keeps its own default.
 
 import pytest
 
-from tradingagents.llm_clients.factory import create_llm_client
+from alpha_desk_research.llm_clients.factory import create_llm_client
 
 
 @pytest.mark.unit
@@ -42,16 +42,16 @@ class TestTemperatureForwarding:
 @pytest.mark.unit
 class TestTemperatureEnvOverlay:
     def test_env_sets_temperature(self, monkeypatch):
-        import tradingagents.default_config as dc
-        monkeypatch.setenv("TRADINGAGENTS_TEMPERATURE", "0.2")
+        import alpha_desk_research.default_config as dc
+        monkeypatch.setenv("ALPHA_DESK_TEMPERATURE", "0.2")
         config = dc.build_default_config()
         # Stored on config (string from env is fine; consumed via float()).
         assert config["temperature"] in ("0.2", 0.2)
         assert float(config["temperature"]) == 0.2
 
     def test_default_temperature_is_none(self, monkeypatch):
-        import tradingagents.default_config as dc
-        monkeypatch.delenv("TRADINGAGENTS_TEMPERATURE", raising=False)
+        import alpha_desk_research.default_config as dc
+        monkeypatch.delenv("ALPHA_DESK_TEMPERATURE", raising=False)
         assert dc.build_default_config()["temperature"] is None
 
 
@@ -60,7 +60,7 @@ class TestProviderKwargsTemperature:
     """build_llm_kwargs float-coerces and forwards temperature, or omits it."""
 
     def _kwargs_for(self, temperature):
-        from tradingagents.llm_clients import build_llm_kwargs
+        from alpha_desk_research.llm_clients import build_llm_kwargs
         return build_llm_kwargs({"llm_provider": "openai", "temperature": temperature})
 
     def test_float_string_coerced(self):

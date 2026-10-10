@@ -1,4 +1,4 @@
-"""MCP server package: async research jobs over the TradingAgents graph."""
+"""MCP server package: async research jobs over the Alpha Desk Research graph."""
 
 from .jobs import configure
 

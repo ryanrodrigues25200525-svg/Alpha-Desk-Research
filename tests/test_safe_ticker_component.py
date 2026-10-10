@@ -5,7 +5,7 @@ import unittest
 
 import pytest
 
-from tradingagents.dataflows.symbols import safe_ticker_component
+from alpha_desk_research.dataflows.symbols import safe_ticker_component
 
 
 @pytest.mark.unit

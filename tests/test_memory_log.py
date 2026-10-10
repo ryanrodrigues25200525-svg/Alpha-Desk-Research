@@ -5,12 +5,12 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from tradingagents.agents.managers.portfolio_manager import create_portfolio_manager
-from tradingagents.agents.schemas import PortfolioDecision, PortfolioRating
-from tradingagents.graph.propagation import Propagator
-from tradingagents.graph.trading_graph import TradingAgentsGraph
-from tradingagents.memory import TradingMemoryLog, settlement
-from tradingagents.memory.reflection import Reflector
+from alpha_desk_research.agents.managers.portfolio_manager import create_portfolio_manager
+from alpha_desk_research.agents.schemas import PortfolioDecision, PortfolioRating
+from alpha_desk_research.graph.propagation import Propagator
+from alpha_desk_research.graph.trading_graph import AlphaDeskGraph
+from alpha_desk_research.memory import TradingMemoryLog, settlement
+from alpha_desk_research.memory.reflection import Reflector
 
 _SEP = TradingMemoryLog._SEPARATOR
 
@@ -195,7 +195,7 @@ class TestTradingMemoryLogCore:
     def test_an_unreadable_decision_is_tagged_for_review(self, tmp_path):
         """Not a Hold: a fabricated rating is quoted back to the next run as a
         call that was never made, and counted in the backtest figures."""
-        from tradingagents.agents.rating import RATING_REVIEW
+        from alpha_desk_research.agents.rating import RATING_REVIEW
 
         log = make_log(tmp_path)
         log.store_decision("MSFT", "2026-01-12", DECISION_NO_RATING)
@@ -611,7 +611,7 @@ class TestDeferredReflection:
     def test_resolve_benchmark_china_a_shares(self):
         """A-share tickers route to their exchange composite (uses the real
         default benchmark_map, since A-share support relies on it)."""
-        from tradingagents.default_config import DEFAULT_CONFIG
+        from alpha_desk_research.default_config import DEFAULT_CONFIG
         config = {"benchmark_ticker": None,
                              "benchmark_map": DEFAULT_CONFIG["benchmark_map"]}
         assert settlement.resolve_benchmark("600519.SS", config) == "000001.SS"
@@ -621,7 +621,7 @@ class TestDeferredReflection:
 
     def test_resolve_benchmark_brazil(self):
         """B3 tickers were measured against SPY."""
-        from tradingagents.default_config import DEFAULT_CONFIG
+        from alpha_desk_research.default_config import DEFAULT_CONFIG
         config = {"benchmark_ticker": None,
                              "benchmark_map": DEFAULT_CONFIG["benchmark_map"]}
         assert settlement.resolve_benchmark("PETR4.SA", config) == "^BVSP"
@@ -632,7 +632,7 @@ class TestDeferredReflection:
     ])
     def test_resolve_benchmark_regional_indexes(self, ticker, index):
         """Taiwan, Korea, Singapore and the main European exchanges were measured against SPY."""
-        from tradingagents.default_config import DEFAULT_CONFIG
+        from alpha_desk_research.default_config import DEFAULT_CONFIG
         config = {"benchmark_ticker": None, "benchmark_map": DEFAULT_CONFIG["benchmark_map"]}
         assert settlement.resolve_benchmark(ticker, config) == index
 
@@ -871,17 +871,17 @@ class TestLegacyRemoval:
 
     def test_financial_situation_memory_removed(self):
         """FinancialSituationMemory must not be importable from the memory module."""
-        import tradingagents.memory as m
+        import alpha_desk_research.memory as m
         assert not hasattr(m, "FinancialSituationMemory")
 
     def test_bm25_not_imported(self):
         """rank_bm25 must not be present in the memory module namespace."""
-        import tradingagents.memory as m
+        import alpha_desk_research.memory as m
         assert not hasattr(m, "BM25Okapi")
 
     def test_reflect_and_remember_removed(self):
-        """TradingAgentsGraph must not expose reflect_and_remember."""
-        assert not hasattr(TradingAgentsGraph, "reflect_and_remember")
+        """AlphaDeskGraph must not expose reflect_and_remember."""
+        assert not hasattr(AlphaDeskGraph, "reflect_and_remember")
 
     def test_portfolio_manager_no_memory_param(self):
         """create_portfolio_manager accepts only llm; passing memory= raises TypeError."""
@@ -926,12 +926,12 @@ class TestLegacyRemoval:
         # Bind the real _run_graph so propagate's call to self._run_graph executes
         # the actual write path instead of the auto-MagicMock.
         mock_graph._run_graph = functools.partial(
-            TradingAgentsGraph._run_graph, mock_graph
+            AlphaDeskGraph._run_graph, mock_graph
         )
         mock_graph.record_decision = functools.partial(
-            TradingAgentsGraph.record_decision, mock_graph
+            AlphaDeskGraph.record_decision, mock_graph
         )
-        TradingAgentsGraph.propagate(mock_graph, "NVDA", "2026-01-10")
+        AlphaDeskGraph.propagate(mock_graph, "NVDA", "2026-01-10")
         entries = mock_graph.memory_log.load_entries()
         assert len(entries) == 1
         assert entries[0]["ticker"] == "NVDA"
@@ -942,10 +942,10 @@ class TestLegacyRemoval:
 def test_a_failed_reflection_leaves_the_entry_pending_and_lets_the_run_start(tmp_path, monkeypatch):
     """Settling past decisions happens on the way into a new run, and reflection
     calls an LLM. A transient failure there must not stop the new analysis."""
-    from tradingagents.graph.trading_graph import TradingAgentsGraph
-    from tradingagents.memory import TradingMemoryLog
+    from alpha_desk_research.graph.trading_graph import AlphaDeskGraph
+    from alpha_desk_research.memory import TradingMemoryLog
 
-    graph = object.__new__(TradingAgentsGraph)
+    graph = object.__new__(AlphaDeskGraph)
     graph.config = {"memory_log_path": str(tmp_path / "m.md")}
     graph.memory_log = TradingMemoryLog(graph.config)
     graph.memory_log.store_decision("NVDA", "2026-01-05", "Rating: Buy\n\nx")
@@ -975,10 +975,10 @@ def test_a_failed_reflection_leaves_the_entry_pending_and_lets_the_run_start(tmp
 def test_the_holding_window_is_configurable(tmp_path, monkeypatch):
     """A decision written for months should not be graded at a week without the
     operator choosing that window."""
-    from tradingagents.graph.trading_graph import TradingAgentsGraph
-    from tradingagents.memory import TradingMemoryLog
+    from alpha_desk_research.graph.trading_graph import AlphaDeskGraph
+    from alpha_desk_research.memory import TradingMemoryLog
 
-    graph = object.__new__(TradingAgentsGraph)
+    graph = object.__new__(AlphaDeskGraph)
     graph.config = {"memory_log_path": str(tmp_path / "m.md"), "holding_period_days": 21}
     graph.memory_log = TradingMemoryLog(graph.config)
     graph.memory_log.store_decision("NVDA", "2026-01-05", "**Rating**: Buy\n\nx")
@@ -1002,7 +1002,7 @@ def test_the_holding_window_is_configurable(tmp_path, monkeypatch):
 def test_the_reflection_states_the_window_it_judges():
     """Judging a months-long thesis on a week's alpha, without saying so, turns
     a scope mismatch into a lesson that the call was wrong."""
-    from tradingagents.memory.reflection import Reflector
+    from alpha_desk_research.memory.reflection import Reflector
 
     prompt = Reflector(None)._system_prompt(holding_days=5)
     assert "5" in prompt and "trading day" in prompt
@@ -1024,7 +1024,7 @@ def test_a_longer_window_asks_for_enough_price_history(monkeypatch):
             days = pd.bdate_range(start, end)
             return pd.DataFrame({"Close": range(len(days))}, index=days)
 
-    monkeypatch.setattr("tradingagents.dataflows.vendors.yahoo.market.yf.Ticker", _Ticker)
+    monkeypatch.setattr("alpha_desk_research.dataflows.vendors.yahoo.market.yf.Ticker", _Ticker)
 
     raw, alpha, days, resolved = settlement.fetch_returns("NVDA", "2026-06-01", 21, benchmark="SPY")
 
@@ -1176,9 +1176,9 @@ class TestSettleAll:
 
 @pytest.mark.unit
 def test_the_graph_settles_every_ticker_under_its_own_config(tmp_path, monkeypatch):
-    from tradingagents.dataflows.config import get_config
+    from alpha_desk_research.dataflows.config import get_config
 
-    graph = object.__new__(TradingAgentsGraph)
+    graph = object.__new__(AlphaDeskGraph)
     graph.config = {"holding_period_days": 5, "output_language": "Deutsch"}
     graph.memory_log, graph.reflector = make_log(tmp_path), object()
     seen = []
@@ -1244,7 +1244,7 @@ class TestSettlementOnceAndDurably:
         assert [e["date"] for e in log.get_pending_entries()] == ["2026-01-12"]
 
     def test_a_price_request_that_fails_is_reported_not_taken_for_not_due(self, tmp_path, monkeypatch):
-        from tradingagents.dataflows.errors import VendorUnavailableError
+        from alpha_desk_research.dataflows.errors import VendorUnavailableError
 
         log = self._log(tmp_path, monkeypatch, "2026-01-05")
 

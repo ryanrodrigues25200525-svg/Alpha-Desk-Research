@@ -8,6 +8,7 @@ import typer
 from rich.align import Align
 from rich.panel import Panel
 
+from alpha_desk_research.default_config import DEFAULT_CONFIG
 from cli.announcements import display_announcements, fetch_announcements
 from cli.display import (
     console,
@@ -36,7 +37,6 @@ from cli.prompts import (
     select_research_depth,
     select_shallow_thinking_agent,
 )
-from tradingagents.default_config import DEFAULT_CONFIG
 
 
 def get_user_selections(flags=None):
@@ -48,8 +48,8 @@ def get_user_selections(flags=None):
 
 def depth_from_env() -> bool:
     """Both round counts come from the environment, so the depth question is skipped."""
-    return bool(os.environ.get("TRADINGAGENTS_MAX_DEBATE_ROUNDS")
-                and os.environ.get("TRADINGAGENTS_MAX_RISK_ROUNDS"))
+    return bool(os.environ.get("ALPHA_DESK_MAX_DEBATE_ROUNDS")
+                and os.environ.get("ALPHA_DESK_MAX_RISK_ROUNDS"))
 
 
 def unattended_gaps(flags) -> list[str]:
@@ -57,14 +57,14 @@ def unattended_gaps(flags) -> list[str]:
     env = os.environ.get
     gaps = [f"--{name}" for name in ("ticker", "date", "analysts") if flags.get(name) is None]
     gaps += [f"--{name} or --no-{name}" for name in ("save", "show") if flags.get(name) is None]
-    if not env("TRADINGAGENTS_OUTPUT_LANGUAGE"):
-        gaps.append("TRADINGAGENTS_OUTPUT_LANGUAGE")
+    if not env("ALPHA_DESK_OUTPUT_LANGUAGE"):
+        gaps.append("ALPHA_DESK_OUTPUT_LANGUAGE")
     if not depth_from_env():
-        gaps.append("TRADINGAGENTS_MAX_DEBATE_ROUNDS and TRADINGAGENTS_MAX_RISK_ROUNDS")
-    if not env("TRADINGAGENTS_LLM_PROVIDER"):
-        gaps.append("TRADINGAGENTS_LLM_PROVIDER")
-    if not (env("TRADINGAGENTS_QUICK_THINK_LLM") or env("TRADINGAGENTS_DEEP_THINK_LLM")):
-        gaps.append("TRADINGAGENTS_QUICK_THINK_LLM or TRADINGAGENTS_DEEP_THINK_LLM")
+        gaps.append("ALPHA_DESK_MAX_DEBATE_ROUNDS and ALPHA_DESK_MAX_RISK_ROUNDS")
+    if not env("ALPHA_DESK_LLM_PROVIDER"):
+        gaps.append("ALPHA_DESK_LLM_PROVIDER")
+    if not (env("ALPHA_DESK_QUICK_THINK_LLM") or env("ALPHA_DESK_DEEP_THINK_LLM")):
+        gaps.append("ALPHA_DESK_QUICK_THINK_LLM or ALPHA_DESK_DEEP_THINK_LLM")
     return gaps
 
 
@@ -81,7 +81,7 @@ def _check_tier_providers(main_provider: str) -> None:
     for tier in ("quick", "deep"):
         provider = (DEFAULT_CONFIG.get(f"{tier}_think_provider") or main_provider).lower()
         if provider != main_provider.lower():
-            variable = f"TRADINGAGENTS_{tier.upper()}_THINK_LLM"
+            variable = f"ALPHA_DESK_{tier.upper()}_THINK_LLM"
             if not os.environ.get(variable):
                 console.print(f"[red]The {tier} tier runs on {provider}; set {variable} to one of its models.[/red]")
                 raise typer.Exit(code=1)
@@ -185,8 +185,8 @@ def _prompt_selections(prefs, flags):
         )
         analysis_date = get_analysis_date()
 
-    # Step 3: Output language (skipped when set via TRADINGAGENTS_OUTPUT_LANGUAGE)
-    if os.environ.get("TRADINGAGENTS_OUTPUT_LANGUAGE"):
+    # Step 3: Output language (skipped when set via ALPHA_DESK_OUTPUT_LANGUAGE)
+    if os.environ.get("ALPHA_DESK_OUTPUT_LANGUAGE"):
         output_language = DEFAULT_CONFIG["output_language"]
         console.print(
             f"[green]✓ Output language from environment:[/green] {output_language}"
@@ -217,7 +217,7 @@ def _prompt_selections(prefs, flags):
 
     # Step 5: Research depth (skipped when both round counts are set via env).
     # Research depth maps to the debate + risk round counts; when both are
-    # supplied through TRADINGAGENTS_MAX_DEBATE_ROUNDS / _MAX_RISK_ROUNDS we keep
+    # supplied through ALPHA_DESK_MAX_DEBATE_ROUNDS / _MAX_RISK_ROUNDS we keep
     # the run non-interactive and honor the env values (#977).
     if depth_from_env():
         selected_research_depth = DEFAULT_CONFIG["max_debate_rounds"]
@@ -234,11 +234,11 @@ def _prompt_selections(prefs, flags):
         )
         selected_research_depth = select_research_depth(prefs.get("research_depth"))
 
-    # Step 6: LLM Provider (skipped when set via TRADINGAGENTS_LLM_PROVIDER).
-    # The backend URL comes from TRADINGAGENTS_LLM_BACKEND_URL when set,
+    # Step 6: LLM Provider (skipped when set via ALPHA_DESK_LLM_PROVIDER).
+    # The backend URL comes from ALPHA_DESK_LLM_BACKEND_URL when set,
     # otherwise the provider's default endpoint — the same value the menu
     # would have picked.
-    provider_from_env = bool(os.environ.get("TRADINGAGENTS_LLM_PROVIDER"))
+    provider_from_env = bool(os.environ.get("ALPHA_DESK_LLM_PROVIDER"))
     if provider_from_env:
         selected_llm_provider = DEFAULT_CONFIG["llm_provider"].lower()
         backend_url = resolve_backend_url(
@@ -286,7 +286,7 @@ def _prompt_selections(prefs, flags):
     _check_tier_providers(selected_llm_provider)
 
     # Step 7: Thinking agents (skipped when either model is set via environment)
-    if os.environ.get("TRADINGAGENTS_QUICK_THINK_LLM") or os.environ.get("TRADINGAGENTS_DEEP_THINK_LLM"):
+    if os.environ.get("ALPHA_DESK_QUICK_THINK_LLM") or os.environ.get("ALPHA_DESK_DEEP_THINK_LLM"):
         selected_shallow_thinker = DEFAULT_CONFIG["quick_think_llm"]
         selected_deep_thinker = DEFAULT_CONFIG["deep_think_llm"]
         console.print(
@@ -308,7 +308,7 @@ def _prompt_selections(prefs, flags):
         )
 
     # Step 8: Provider-specific reasoning/thinking configuration. Each knob is
-    # settable via its TRADINGAGENTS_* env var; when that var is set (or the
+    # settable via its ALPHA_DESK_* env var; when that var is set (or the
     # provider itself came from env) the prompt is skipped and the configured
     # value is used — same env-precedence rule as the steps above. None = each
     # provider's own default.
@@ -323,19 +323,19 @@ def _prompt_selections(prefs, flags):
         anthropic_effort = DEFAULT_CONFIG["anthropic_effort"]
     elif provider_lower == "google":
         thinking_level = thinking_value_or_prompt(
-            "TRADINGAGENTS_GOOGLE_THINKING_LEVEL", "google_thinking_level",
+            "ALPHA_DESK_GOOGLE_THINKING_LEVEL", "google_thinking_level",
             "Gemini thinking mode", "Step 8: Thinking Mode",
             "Configure Gemini thinking mode", ask_gemini_thinking_config,
         )
     elif provider_lower == "openai":
         reasoning_effort = thinking_value_or_prompt(
-            "TRADINGAGENTS_OPENAI_REASONING_EFFORT", "openai_reasoning_effort",
+            "ALPHA_DESK_OPENAI_REASONING_EFFORT", "openai_reasoning_effort",
             "Reasoning effort", "Step 8: Reasoning Effort",
             "Configure OpenAI reasoning effort level", ask_openai_reasoning_effort,
         )
     elif provider_lower == "anthropic":
         anthropic_effort = thinking_value_or_prompt(
-            "TRADINGAGENTS_ANTHROPIC_EFFORT", "anthropic_effort",
+            "ALPHA_DESK_ANTHROPIC_EFFORT", "anthropic_effort",
             "Claude effort", "Step 8: Effort Level",
             "Configure Claude effort level", ask_anthropic_effort,
         )

@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import pytest
 
-import tradingagents.default_config as default_config_module
-from tradingagents.llm_clients.factory import _coerce_max_tokens, build_llm_kwargs
+import alpha_desk_research.default_config as default_config_module
+from alpha_desk_research.llm_clients.factory import _coerce_max_tokens, build_llm_kwargs
 
 # --- coercion / validation -------------------------------------------------
 
@@ -85,8 +85,8 @@ def test_invalid_value_fails_loudly():
 
 @pytest.mark.unit
 def test_openai_and_google_clients_accept_the_kwarg():
-    from tradingagents.llm_clients import openai_client
-    from tradingagents.llm_clients.google_client import GoogleClient  # noqa: F401
+    from alpha_desk_research.llm_clients import openai_client
+    from alpha_desk_research.llm_clients.google_client import GoogleClient  # noqa: F401
     assert "max_tokens" in openai_client._PASSTHROUGH_KWARGS
     # Google client forwards max_output_tokens through construction.
     llm = GoogleClient("gemini-3.5-flash", api_key="x", max_output_tokens=8192).get_llm()
@@ -112,6 +112,6 @@ def test_default_is_none(monkeypatch):
 
 @pytest.mark.unit
 def test_env_override_sets_config(monkeypatch):
-    config = _config_with_env(monkeypatch, TRADINGAGENTS_MAX_TOKENS="8192")
+    config = _config_with_env(monkeypatch, ALPHA_DESK_MAX_TOKENS="8192")
     assert config["max_tokens"] == "8192"
     assert _coerce_max_tokens(config["max_tokens"]) == 8192

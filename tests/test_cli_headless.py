@@ -10,11 +10,11 @@ from cli import prompts, run, selections
 from cli.models import AnalystType, AssetType
 
 UNATTENDED_ENV = {
-    "TRADINGAGENTS_OUTPUT_LANGUAGE": "English",
-    "TRADINGAGENTS_MAX_DEBATE_ROUNDS": "1",
-    "TRADINGAGENTS_MAX_RISK_ROUNDS": "1",
-    "TRADINGAGENTS_LLM_PROVIDER": "openai",
-    "TRADINGAGENTS_QUICK_THINK_LLM": "gpt-6-luna",
+    "ALPHA_DESK_OUTPUT_LANGUAGE": "English",
+    "ALPHA_DESK_MAX_DEBATE_ROUNDS": "1",
+    "ALPHA_DESK_MAX_RISK_ROUNDS": "1",
+    "ALPHA_DESK_LLM_PROVIDER": "openai",
+    "ALPHA_DESK_QUICK_THINK_LLM": "gpt-6-luna",
 }
 FLAGS = {"ticker": "NVDA", "date": "2026-09-23", "analysts": "market,news", "save": True, "show": False}
 
@@ -75,7 +75,7 @@ def test_without_a_terminal_every_unanswered_question_is_named_before_the_run(mo
         run.run_analysis(flags={"ticker": "NVDA"})
 
     out = capsys.readouterr().out
-    for needed in ("--date", "--analysts", "--save", "--show", "TRADINGAGENTS_LLM_PROVIDER"):
+    for needed in ("--date", "--analysts", "--save", "--show", "ALPHA_DESK_LLM_PROVIDER"):
         assert needed in out
     assert "--ticker" not in out
 
@@ -105,9 +105,9 @@ def test_save_and_show_answer_the_questions_after_the_run(monkeypatch, tmp_path)
     monkeypatch.setattr(run, "_graphical_browser", lambda: _Browser())   # even at a desktop
     shown = []
     monkeypatch.setattr(run, "display_complete_report", lambda state: shown.append(state))
-    from tradingagents.graph.trading_graph import TradingAgentsGraph
+    from alpha_desk_research.graph.trading_graph import AlphaDeskGraph
 
-    graph = object.__new__(TradingAgentsGraph)
+    graph = object.__new__(AlphaDeskGraph)
     graph.config = {"results_dir": str(tmp_path)}
     graph.run_settings = lambda: {}
     state = {"market_report": "M", "final_trade_decision": "**Rating**: Hold"}
@@ -179,8 +179,8 @@ def test_a_closed_stdin_counts_as_no_terminal(monkeypatch, capsys):
 @pytest.mark.unit
 def test_rounds_from_the_environment_do_not_claim_a_depth_was_chosen(monkeypatch, capsys):
     """With both round counts set, the depth question never appeared."""
-    monkeypatch.setenv("TRADINGAGENTS_MAX_DEBATE_ROUNDS", "1")
-    monkeypatch.setenv("TRADINGAGENTS_MAX_RISK_ROUNDS", "1")
+    monkeypatch.setenv("ALPHA_DESK_MAX_DEBATE_ROUNDS", "1")
+    monkeypatch.setenv("ALPHA_DESK_MAX_RISK_ROUNDS", "1")
     selections = {"research_depth": 3, "quick_think_llm": "q", "deep_think_llm": "d", "backend_url": None,
                   "llm_provider": "openai", "google_thinking_level": None, "openai_reasoning_effort": None,
                   "anthropic_effort": None, "output_language": "English"}
@@ -212,18 +212,18 @@ def test_a_tier_on_another_provider_needs_its_own_model(monkeypatch, capsys):
     """Otherwise the CLI would take the main provider's model for it (#1440)."""
     _selections_with_env(monkeypatch)
     monkeypatch.setitem(selections.DEFAULT_CONFIG, "deep_think_provider", "anthropic")
-    monkeypatch.delenv("TRADINGAGENTS_DEEP_THINK_LLM", raising=False)
+    monkeypatch.delenv("ALPHA_DESK_DEEP_THINK_LLM", raising=False)
 
     with pytest.raises(typer.Exit):
         selections._prompt_selections({}, FLAGS)
-    assert "TRADINGAGENTS_DEEP_THINK_LLM" in capsys.readouterr().out
+    assert "ALPHA_DESK_DEEP_THINK_LLM" in capsys.readouterr().out
 
 
 @pytest.mark.unit
 def test_each_tier_provider_s_key_is_checked_before_the_run(monkeypatch):
     checked = _selections_with_env(monkeypatch)
     monkeypatch.setitem(selections.DEFAULT_CONFIG, "deep_think_provider", "anthropic")
-    monkeypatch.setenv("TRADINGAGENTS_DEEP_THINK_LLM", "claude-opus-5-5")
+    monkeypatch.setenv("ALPHA_DESK_DEEP_THINK_LLM", "claude-opus-5-5")
 
     selections._prompt_selections({}, FLAGS)
 
@@ -231,9 +231,9 @@ def test_each_tier_provider_s_key_is_checked_before_the_run(monkeypatch):
 
 
 def _report_graph(tmp_path):
-    from tradingagents.graph.trading_graph import TradingAgentsGraph
+    from alpha_desk_research.graph.trading_graph import AlphaDeskGraph
 
-    graph = object.__new__(TradingAgentsGraph)
+    graph = object.__new__(AlphaDeskGraph)
     graph.config = {"results_dir": str(tmp_path)}
     graph.run_settings = lambda: {}
     return graph
@@ -356,7 +356,7 @@ def test_only_the_providers_the_tiers_use_need_a_key(monkeypatch):
     checked = _selections_with_env(monkeypatch)
     for tier in ("quick", "deep"):
         monkeypatch.setitem(selections.DEFAULT_CONFIG, f"{tier}_think_provider", "ollama")
-        monkeypatch.setenv(f"TRADINGAGENTS_{tier.upper()}_THINK_LLM", "llama3.1")
+        monkeypatch.setenv(f"ALPHA_DESK_{tier.upper()}_THINK_LLM", "llama3.1")
 
     selections._prompt_selections({}, FLAGS)
 

@@ -1,8 +1,8 @@
 import unittest
 
+from alpha_desk_research.graph.propagation import Propagator
 from cli.models import AnalystType, AssetType
 from cli.prompts import detect_asset_type, filter_analysts_for_asset_type
-from tradingagents.graph.propagation import Propagator
 
 
 class CryptoAssetModeTests(unittest.TestCase):

@@ -18,12 +18,12 @@ from langchain_core.outputs import ChatGeneration, ChatResult
 from langchain_core.runnables import RunnableLambda
 from pydantic import Field
 
-from tradingagents.agents import context, schemas
-from tradingagents.agents.analysts import sentiment_analyst
-from tradingagents.dataflows import router
-from tradingagents.dataflows.vendors.yahoo import market as yahoo_market, snapshot
-from tradingagents.default_config import DEFAULT_CONFIG
-from tradingagents.graph import trading_graph
+from alpha_desk_research.agents import context, schemas
+from alpha_desk_research.agents.analysts import sentiment_analyst
+from alpha_desk_research.dataflows import router
+from alpha_desk_research.dataflows.vendors.yahoo import market as yahoo_market, snapshot
+from alpha_desk_research.default_config import DEFAULT_CONFIG
+from alpha_desk_research.graph import trading_graph
 
 TRADE_DATE = "2026-01-09"
 
@@ -125,7 +125,7 @@ def _graph(tmp_path, monkeypatch, model, debug=False, **config):
     cfg.update(results_dir=str(tmp_path / "results"), data_cache_dir=str(tmp_path / "cache"),
                memory_log_path=str(tmp_path / "log.md"), **config)
     monkeypatch.setattr(trading_graph, "create_tier_client", lambda config, tier, **k: _Client(model))
-    return trading_graph.TradingAgentsGraph(config=cfg, debug=debug)
+    return trading_graph.AlphaDeskGraph(config=cfg, debug=debug)
 
 
 @pytest.mark.unit
@@ -175,7 +175,7 @@ def test_a_graph_reused_across_runs_keeps_no_run_state(tmp_path, monkeypatch, of
 
     held = [v for v in vars(graph).values() if isinstance(v, dict) and TRADE_DATE in v]
     assert held == []
-    assert len(list(tmp_path.glob("results/NVDA/TradingAgentsStrategy_logs/*.json"))) == 2
+    assert len(list(tmp_path.glob("results/NVDA/AlphaDeskStrategy_logs/*.json"))) == 2
 
 
 @pytest.mark.unit
@@ -220,7 +220,7 @@ def test_each_report_streams_as_soon_as_its_analyst_files_it(tmp_path, monkeypat
 def test_a_streamed_run_reads_its_own_graph_config(tmp_path, monkeypatch, offline):
     """The CLI streams the run; a process-wide config set elsewhere must not reach
     its tools, and the graph's config must not reach the caller between steps."""
-    from tradingagents.dataflows.config import get_config, set_config
+    from alpha_desk_research.dataflows.config import get_config, set_config
 
     graph = _graph(tmp_path, monkeypatch, ScriptedModel(), output_language="French")
     set_config({"output_language": "German"})
@@ -308,7 +308,7 @@ class TimedModel(ScriptedModel):
 
 @pytest.mark.unit
 def test_past_decisions_settle_alongside_the_analysts(tmp_path, monkeypatch, offline):
-    from tradingagents.memory import settlement
+    from alpha_desk_research.memory import settlement
 
     model = TimedModel()
     graph = _graph(tmp_path, monkeypatch, model)
@@ -333,7 +333,7 @@ def test_past_decisions_settle_alongside_the_analysts(tmp_path, monkeypatch, off
 @pytest.mark.unit
 def test_a_settlement_failure_is_noted_and_the_run_goes_on(tmp_path, monkeypatch, offline):
     """The analysts have spent their tokens by the time the join waits on settlement."""
-    from tradingagents.reporting import write_report_tree
+    from alpha_desk_research.reporting import write_report_tree
 
     graph = _graph(tmp_path, monkeypatch, ScriptedModel(structured=True))
 
@@ -352,7 +352,7 @@ def test_a_settlement_failure_is_noted_and_the_run_goes_on(tmp_path, monkeypatch
 @pytest.mark.unit
 def test_the_run_settles_other_tickers_due_decisions_too(tmp_path, monkeypatch, offline):
     """A ticker a scheduler stopped analysing still gets its decisions settled (#1445)."""
-    from tradingagents.memory import settlement
+    from alpha_desk_research.memory import settlement
 
     graph = _graph(tmp_path, monkeypatch, ScriptedModel(structured=True))
     graph.memory_log.store_decision("MSFT", "2026-01-02", "Rating: Buy\n\nBuy MSFT.")
@@ -369,7 +369,7 @@ def test_the_run_settles_other_tickers_due_decisions_too(tmp_path, monkeypatch, 
 def test_the_memory_step_reads_lessons_as_of_the_trade_date_and_settles_once(tmp_path, monkeypatch, offline):
     """A past-dated run reads only lessons known by its date (#1251); a resumed run
     that re-runs the step settles nothing twice."""
-    from tradingagents.memory import settlement
+    from alpha_desk_research.memory import settlement
 
     graph = _graph(tmp_path, monkeypatch, ScriptedModel(structured=True))
     graph.memory_log.store_decision("NVDA", "2026-01-02", "Rating: Buy\n\nBuy NVDA.")

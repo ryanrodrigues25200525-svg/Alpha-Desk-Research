@@ -41,7 +41,7 @@ def _capture_tool_analyst(mod, factory, state):
 
 
 def _capture_sentiment(state):
-    import tradingagents.agents.analysts.sentiment_analyst as mod
+    import alpha_desk_research.agents.analysts.sentiment_analyst as mod
 
     captured = {}
 
@@ -62,9 +62,9 @@ def _capture_sentiment(state):
 
 def get_system_prompt(factory: str) -> str:
     """Render the analyst's full system prompt text (test helper)."""
-    import tradingagents.agents.analysts.fundamentals_analyst as fundamentals
-    import tradingagents.agents.analysts.market_analyst as market
-    import tradingagents.agents.analysts.news_analyst as news
+    import alpha_desk_research.agents.analysts.fundamentals_analyst as fundamentals
+    import alpha_desk_research.agents.analysts.market_analyst as market
+    import alpha_desk_research.agents.analysts.news_analyst as news
 
     state = _base_state()
     if factory == "market":

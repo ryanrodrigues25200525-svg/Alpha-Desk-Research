@@ -12,13 +12,13 @@ from unittest import mock
 import pandas as pd
 import pytest
 
-import tradingagents.dataflows.config as config_module
-import tradingagents.dataflows.vendors.yahoo.market as yahoo_market
-import tradingagents.default_config as default_config
-from tradingagents.dataflows import router
-from tradingagents.dataflows.config import set_config
-from tradingagents.dataflows.errors import NoMarketDataError
-from tradingagents.dataflows.vendors.yahoo.ohlcv import _assert_ohlcv_not_stale
+import alpha_desk_research.dataflows.config as config_module
+import alpha_desk_research.dataflows.vendors.yahoo.market as yahoo_market
+import alpha_desk_research.default_config as default_config
+from alpha_desk_research.dataflows import router
+from alpha_desk_research.dataflows.config import set_config
+from alpha_desk_research.dataflows.errors import NoMarketDataError
+from alpha_desk_research.dataflows.vendors.yahoo.ohlcv import _assert_ohlcv_not_stale
 
 
 def _frame(date):

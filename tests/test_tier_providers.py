@@ -8,8 +8,8 @@ provider's URL, and the run's settings and report say which provider each used.
 
 import pytest
 
-from tradingagents import default_config
-from tradingagents.llm_clients import factory
+from alpha_desk_research import default_config
+from alpha_desk_research.llm_clients import factory
 
 
 def _config(**overrides):
@@ -65,10 +65,10 @@ def test_a_tier_url_is_used_for_that_tier_only(monkeypatch):
 
 @pytest.mark.unit
 def test_the_run_settings_and_report_name_each_tier_s_provider():
-    from tradingagents.graph.trading_graph import TradingAgentsGraph
-    from tradingagents.reporting import _header
+    from alpha_desk_research.graph.trading_graph import AlphaDeskGraph
+    from alpha_desk_research.reporting import _header
 
-    graph = object.__new__(TradingAgentsGraph)
+    graph = object.__new__(AlphaDeskGraph)
     graph.selected_analysts = ("market",)
     graph.config = _config(deep_think_provider="anthropic", deep_think_llm="claude-opus-5-5")
 
@@ -80,8 +80,8 @@ def test_the_run_settings_and_report_name_each_tier_s_provider():
 
 @pytest.mark.unit
 def test_the_tier_settings_are_read_from_the_environment(monkeypatch):
-    monkeypatch.setenv("TRADINGAGENTS_DEEP_THINK_PROVIDER", "anthropic")
-    monkeypatch.setenv("TRADINGAGENTS_QUICK_THINK_BACKEND_URL", "http://localhost:8000/v1")
+    monkeypatch.setenv("ALPHA_DESK_DEEP_THINK_PROVIDER", "anthropic")
+    monkeypatch.setenv("ALPHA_DESK_QUICK_THINK_BACKEND_URL", "http://localhost:8000/v1")
 
     config = default_config.build_default_config()
 

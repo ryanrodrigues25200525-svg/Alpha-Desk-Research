@@ -39,7 +39,7 @@ It does this 👇
 | ✍️ **Shorter prompts** | Analysts get tighter instructions — same brains, less rambling. 🧹 |
 | ⚡ **Parallel debates** | Bull/bear/risk agents talk at the same time instead of waiting in line. 🏃‍♂️🏃‍♀️ |
 | 🖥️ **Tougher CLI** | Live view that doesn't glitch, `--no-live` mode for servers/CI, fails loudly on errors. 🔔 |
-| ⚙️ **Easy config** | Set models/keys via `TRADINGAGENTS_*` env vars, including free-model presets. 🔑 |
+| ⚙️ **Easy config** | Set models/keys via `ALPHA_DESK_*` env vars, including free-model presets. 🔑 |
 
 ## 🚀 Quickstart
 
@@ -61,9 +61,9 @@ alpha-desk --ticker AAPL --date 2024-06-14 --no-live   # 🤖 headless / CI
 
 ```bash
 export OPENROUTER_API_KEY=...
-export TRADINGAGENTS_LLM_PROVIDER=openrouter
-export TRADINGAGENTS_QUICK_THINK_LLM="nvidia/nemotron-3-super-120b-a12b:free"
-export TRADINGAGENTS_DEEP_THINK_LLM="nvidia/nemotron-3-super-120b-a12b:free"
+export ALPHA_DESK_LLM_PROVIDER=openrouter
+export ALPHA_DESK_QUICK_THINK_LLM="nvidia/nemotron-3-super-120b-a12b:free"
+export ALPHA_DESK_DEEP_THINK_LLM="nvidia/nemotron-3-super-120b-a12b:free"
 alpha-desk --ticker AAPL --no-live
 ```
 
@@ -88,11 +88,11 @@ python benchmarks/run_baseline.py --ticker AAPL --out benchmarks/results/my_run.
 ## 🗂️ What's inside?
 
 ```
-tradingagents/     🧠 the agent team + data + models
-cli/               🖥️ the terminal app
-mcp_server/        📡 the Claude/agent plug (jobs / server / worker)
-benchmarks/        ⏱️ speed + cost measurements
-tests/             ✅ 1285 passing tests
+alpha_desk_research/  🧠 the agent team + data + models
+cli/                  🖥️ the terminal app
+mcp_server/           📡 the Claude/agent plug (jobs / server / worker)
+benchmarks/           ⏱️ speed + cost measurements
+tests/                ✅ 1285 passing tests
 ```
 
 ## 🙏 Attribution

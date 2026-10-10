@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest
 
-from tradingagents.dataflows import router
+from alpha_desk_research.dataflows import router
 
 
 def _route(vendors_for_get_stock_data):

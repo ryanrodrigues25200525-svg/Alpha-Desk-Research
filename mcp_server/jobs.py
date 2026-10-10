@@ -17,7 +17,7 @@ _db_path: Path | None = None
 
 
 def _results_dir() -> Path:
-    return Path(os.environ.get("TRADINGAGENTS_RESULTS_DIR") or os.path.expanduser("~/.tradingagents/logs"))
+    return Path(os.environ.get("ALPHA_DESK_RESULTS_DIR") or os.path.expanduser("~/.alpha-desk/logs"))
 
 
 def registry_db(results_dir: str | os.PathLike | None = None) -> Path:

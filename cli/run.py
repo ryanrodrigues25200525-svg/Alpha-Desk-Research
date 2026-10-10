@@ -11,6 +11,13 @@ from pathlib import Path
 import typer
 from rich.live import Live
 
+from alpha_desk_research.agents.rating import is_review, run_rating
+from alpha_desk_research.dataflows.symbols import safe_ticker_component
+from alpha_desk_research.default_config import DEFAULT_CONFIG
+from alpha_desk_research.graph.analyst_execution import (
+    build_analyst_execution_plan,
+)
+from alpha_desk_research.graph.trading_graph import AlphaDeskGraph
 from cli.display import (
     ANALYST_ORDER,
     AnalystWallTimeTracker,
@@ -25,13 +32,6 @@ from cli.display import (
 )
 from cli.selections import depth_from_env, get_user_selections, unattended_gaps
 from cli.stats_handler import StatsCallbackHandler
-from tradingagents.agents.rating import is_review, run_rating
-from tradingagents.dataflows.symbols import safe_ticker_component
-from tradingagents.default_config import DEFAULT_CONFIG
-from tradingagents.graph.analyst_execution import (
-    build_analyst_execution_plan,
-)
-from tradingagents.graph.trading_graph import TradingAgentsGraph
 
 
 def _run_directory(config: dict, ticker: str, trade_date: str) -> Path:
@@ -64,10 +64,10 @@ def _build_run_config(selections: dict, checkpoint: bool | None) -> dict:
     value on DEFAULT_CONFIG is preserved unless the user overrode it on the CLI.
     """
     config = DEFAULT_CONFIG.copy()
-    # (TRADINGAGENTS_MAX_DEBATE_ROUNDS / _MAX_RISK_ROUNDS) wins over the
+    # (ALPHA_DESK_MAX_DEBATE_ROUNDS / _MAX_RISK_ROUNDS) wins over the
     # interactive selection — leave the env-applied value in place (#977).
-    rounds = (("TRADINGAGENTS_MAX_DEBATE_ROUNDS", "max_debate_rounds"),
-              ("TRADINGAGENTS_MAX_RISK_ROUNDS", "max_risk_discuss_rounds"))
+    rounds = (("ALPHA_DESK_MAX_DEBATE_ROUNDS", "max_debate_rounds"),
+              ("ALPHA_DESK_MAX_RISK_ROUNDS", "max_risk_discuss_rounds"))
     depth_was_asked = not depth_from_env()
     for env_var, key in rounds:
         if not os.environ.get(env_var):
@@ -89,7 +89,7 @@ def _build_run_config(selections: dict, checkpoint: bool | None) -> dict:
     config["anthropic_effort"] = selections.get("anthropic_effort")
     config["output_language"] = selections.get("output_language", "English")
     # --checkpoint/--no-checkpoint overrides only when explicitly given; omitting
-    # the flag preserves TRADINGAGENTS_CHECKPOINT_ENABLED / the default (#976).
+    # the flag preserves ALPHA_DESK_CHECKPOINT_ENABLED / the default (#976).
     if checkpoint is not None:
         config["checkpoint_enabled"] = checkpoint
     return config
@@ -120,7 +120,7 @@ def run_analysis(checkpoint: bool | None = None, portfolio=None, flags=None):
     analyst_wall_time_tracker = AnalystWallTimeTracker(analyst_execution_plan)
 
     try:
-        graph = TradingAgentsGraph(
+        graph = AlphaDeskGraph(
             selected_analyst_keys,
             config=config,
             debug=True,

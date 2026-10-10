@@ -14,11 +14,11 @@ from unittest import mock
 import pandas as pd
 import pytest
 
-from tradingagents.dataflows import router
-from tradingagents.dataflows.config import set_config
-from tradingagents.dataflows.date_window import get_current_date
-from tradingagents.dataflows.errors import NoMarketDataError
-from tradingagents.dataflows.vendors.yahoo import common, ohlcv
+from alpha_desk_research.dataflows import router
+from alpha_desk_research.dataflows.config import set_config
+from alpha_desk_research.dataflows.date_window import get_current_date
+from alpha_desk_research.dataflows.errors import NoMarketDataError
+from alpha_desk_research.dataflows.vendors.yahoo import common, ohlcv
 
 
 @pytest.mark.unit
@@ -96,8 +96,8 @@ if __name__ == "__main__":
 
 @pytest.mark.unit
 def test_an_unreachable_yahoo_is_not_reported_as_a_symbol_without_insider_data():
-    from tradingagents.dataflows.errors import VendorUnavailableError
-    from tradingagents.dataflows.vendors.yahoo import fundamentals
+    from alpha_desk_research.dataflows.errors import VendorUnavailableError
+    from alpha_desk_research.dataflows.vendors.yahoo import fundamentals
 
     ticker = type("T", (), {"insider_transactions": pd.DataFrame()})()
     with mock.patch.object(fundamentals.yf, "Ticker", return_value=ticker), \

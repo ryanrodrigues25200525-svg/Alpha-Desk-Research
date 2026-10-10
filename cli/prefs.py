@@ -20,12 +20,12 @@ import json
 import os
 from pathlib import Path
 
+from alpha_desk_research.dataflows.files import replace_file
+from alpha_desk_research.llm_clients.model_catalog import get_model_options
 from cli.models import AnalystType, AssetType
 from cli.prompts import _llm_provider_table, filter_analysts_for_asset_type
-from tradingagents.dataflows.files import replace_file
-from tradingagents.llm_clients.model_catalog import get_model_options
 
-_PREFS_PATH = Path(os.path.expanduser("~")) / ".tradingagents" / "cli_prefs.json"
+_PREFS_PATH = Path(os.path.expanduser("~")) / ".alpha-desk" / "cli_prefs.json"
 
 REMEMBERED = (
     "output_language", "analysts", "research_depth", "llm_provider",

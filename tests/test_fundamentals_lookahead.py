@@ -19,9 +19,9 @@ from unittest import mock
 
 import pytest
 
-from tradingagents.dataflows import date_window
-from tradingagents.dataflows.vendors.alpha_vantage import fundamentals as av
-from tradingagents.dataflows.vendors.yahoo import (
+from alpha_desk_research.dataflows import date_window
+from alpha_desk_research.dataflows.vendors.alpha_vantage import fundamentals as av
+from alpha_desk_research.dataflows.vendors.yahoo import (
     fundamentals as yahoo_fundamentals,
     market as yahoo_market,
 )
@@ -128,8 +128,8 @@ class TestNoUsableFieldsStillRaises:
     def test_stub_payload_raises_no_market_data(self, monkeypatch):
         # yfinance returns {"trailingPegRatio": None} for unknown symbols; on a
         # live run that must stay a hard "no data", not a bare header.
-        from tradingagents.dataflows.errors import NoMarketDataError
-        from tradingagents.dataflows.vendors.yahoo import common
+        from alpha_desk_research.dataflows.errors import NoMarketDataError
+        from alpha_desk_research.dataflows.vendors.yahoo import common
 
         monkeypatch.setattr(common, "vendor_reachable", lambda url: True)
 

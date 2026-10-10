@@ -39,7 +39,7 @@ class _FakePropagator:
 
 
 class FakeGraph:
-    """Same public surface the worker uses on TradingAgentsGraph."""
+    """Same public surface the worker uses on AlphaDeskGraph."""
 
     def __init__(self, ticker, results_dir, gate=None, chunks=None):
         self.ticker = ticker
@@ -97,7 +97,7 @@ def _make_factory(results_dir, gate=None, chunks=None):
 
 @pytest.fixture()
 def isolated_registry(tmp_path, monkeypatch):
-    monkeypatch.setenv("TRADINGAGENTS_RESULTS_DIR", str(tmp_path))
+    monkeypatch.setenv("ALPHA_DESK_RESULTS_DIR", str(tmp_path))
     jobs.configure(str(tmp_path))
     return tmp_path
 
@@ -233,12 +233,12 @@ def test_depth_preset_rounds_reach_worker(isolated_registry, monkeypatch):
 
     monkeypatch.setitem(
         sys.modules,
-        "tradingagents.graph.trading_graph",
-        types.SimpleNamespace(TradingAgentsGraph=_StubGraph),
+        "alpha_desk_research.graph.trading_graph",
+        types.SimpleNamespace(AlphaDeskGraph=_StubGraph),
     )
     monkeypatch.setitem(
         sys.modules,
-        "tradingagents.dataflows.config",
+        "alpha_desk_research.dataflows.config",
         types.SimpleNamespace(run_config_context=lambda config: nullcontext()),
     )
     factory = build_graph_factory()

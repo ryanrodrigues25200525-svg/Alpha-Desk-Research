@@ -4,7 +4,7 @@ Compares against Tasks 2-5 optimizations. Requires LLM + vendor API keys in
 env (see .env.example); without them the run fails and this script still
 writes a JSON envelope recording the failure so the gap is explicit.
 
-Phase boundaries come from ``TradingAgentsGraph.stream_run`` state keys:
+Phase boundaries come from ``AlphaDeskGraph.stream_run`` state keys:
 analyst reports land when the slowest analyst files (fan-in), then
 investment_plan (debate -> Research Manager), trader_investment_plan,
 final_trade_decision (risk -> Portfolio Manager / manager).
@@ -25,9 +25,9 @@ from pathlib import Path
 
 from langchain_core.callbacks import UsageMetadataCallbackHandler
 
-from tradingagents import __version__ as ta_version
-from tradingagents.default_config import DEFAULT_CONFIG
-from tradingagents.graph.trading_graph import TradingAgentsGraph
+from alpha_desk_research import __version__ as ta_version
+from alpha_desk_research.default_config import DEFAULT_CONFIG
+from alpha_desk_research.graph.trading_graph import AlphaDeskGraph
 
 # First phase milestone (in stream order) each state key marks. Keys are
 # checked in this order per streamed state; a key already seen is skipped so
@@ -74,7 +74,7 @@ def run(ticker: str, trade_date: str) -> dict:
     trade_date = trade_date or default_trade_date()
     config = DEFAULT_CONFIG.copy()
 
-    ta = TradingAgentsGraph(debug=False, config=config, callbacks=[usage])
+    ta = AlphaDeskGraph(debug=False, config=config, callbacks=[usage])
     init_state = ta.create_run_state(ticker, trade_date)
     args = ta.propagator.get_graph_args(callbacks=[usage])
 
@@ -125,7 +125,7 @@ def run(ticker: str, trade_date: str) -> dict:
     result = {
         "ticker": ticker,
         "trade_date": trade_date,
-        "tradingagents_version": ta_version,
+        "alpha_desk_version": ta_version,
         "run_settings": ta.run_settings(),
         "wall_total_s": round(ended - started, 2),
         "phases": phases,

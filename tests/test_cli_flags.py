@@ -65,7 +65,7 @@ def test_stream_failure_exits_nonzero(monkeypatch):
         def propagator(self):
             raise RuntimeError("propagator exploded")
 
-    monkeypatch.setattr(run, "TradingAgentsGraph", _Boom)
+    monkeypatch.setattr(run, "AlphaDeskGraph", _Boom)
     with pytest.raises(typer.Exit) as exc:
         run.run_analysis(flags={"ticker": "NVDA", "no_live": True})
     assert exc.value.exit_code != 0

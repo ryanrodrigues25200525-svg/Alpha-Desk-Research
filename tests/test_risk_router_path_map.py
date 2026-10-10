@@ -9,8 +9,8 @@ mid-run on prompt/i18n/refactor drift in the speaker labels.
 """
 import pytest
 
-from tradingagents.graph.conditional_logic import ConditionalLogic
-from tradingagents.graph.setup import DEBATE_PATH_MAP, RISK_ANALYSIS_PATH_MAP
+from alpha_desk_research.graph.conditional_logic import ConditionalLogic
+from alpha_desk_research.graph.setup import DEBATE_PATH_MAP, RISK_ANALYSIS_PATH_MAP
 
 
 def _state(latest_speaker, count=0):

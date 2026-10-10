@@ -11,11 +11,11 @@ from unittest import mock
 
 import pytest
 
-import tradingagents.dataflows.config as config_module
-import tradingagents.default_config as default_config
-from tradingagents.dataflows import router
-from tradingagents.dataflows.config import set_config
-from tradingagents.dataflows.errors import NoMarketDataError
+import alpha_desk_research.dataflows.config as config_module
+import alpha_desk_research.default_config as default_config
+from alpha_desk_research.dataflows import router
+from alpha_desk_research.dataflows.config import set_config
+from alpha_desk_research.dataflows.errors import NoMarketDataError
 
 
 def _reset_config():
@@ -77,7 +77,7 @@ class VendorRoutingTests(unittest.TestCase):
         # and the failure is in the logs.
         set_config({"data_vendors": {"core_stock_apis": "yfinance,alpha_vantage"}})
         with self._route({"yfinance": _raises(ValueError("boom")), "alpha_vantage": _no_data}), \
-                self.assertLogs("tradingagents.dataflows.router", level="WARNING") as cm:
+                self.assertLogs("alpha_desk_research.dataflows.router", level="WARNING") as cm:
             result = router.route_to_vendor("get_stock_data", "AAPL", "2026-01-01", "2026-01-10")
         self.assertTrue(result.startswith("DATA_UNAVAILABLE"), result)
         joined = "\n".join(cm.output)

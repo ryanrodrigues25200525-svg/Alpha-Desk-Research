@@ -11,15 +11,15 @@ from types import SimpleNamespace
 
 import pytest
 
-from tradingagents.agents.researchers.bear_researcher import create_bear_researcher
-from tradingagents.agents.researchers.bull_researcher import create_bull_researcher
-from tradingagents.agents.risk_mgmt.aggressive_debator import create_aggressive_debator
-from tradingagents.agents.risk_mgmt.conservative_debator import (
+from alpha_desk_research.agents.researchers.bear_researcher import create_bear_researcher
+from alpha_desk_research.agents.researchers.bull_researcher import create_bull_researcher
+from alpha_desk_research.agents.risk_mgmt.aggressive_debator import create_aggressive_debator
+from alpha_desk_research.agents.risk_mgmt.conservative_debator import (
     create_conservative_debator,
 )
-from tradingagents.agents.risk_mgmt.neutral_debator import create_neutral_debator
-from tradingagents.graph.conditional_logic import ConditionalLogic
-from tradingagents.graph.setup import (
+from alpha_desk_research.agents.risk_mgmt.neutral_debator import create_neutral_debator
+from alpha_desk_research.graph.conditional_logic import ConditionalLogic
+from alpha_desk_research.graph.setup import (
     GraphSetup,
     run_investment_opening,
     run_risk_opening,
@@ -176,7 +176,7 @@ def test_later_rounds_stay_sequential():
     opened = run_investment_opening(bull_node, bear_node, _investment_state())
     state = {**_investment_state(), **opened}
 
-    from tradingagents.graph.setup import investment_opener, risk_opener
+    from alpha_desk_research.graph.setup import investment_opener, risk_opener
 
     descript = investment_opener(bull_node, bear_node)
     llm2 = RendezvousLLM(parties=1)

@@ -8,8 +8,8 @@ import inspect
 
 import pytest
 
-import tradingagents.agents.analysts.news_analyst as na
-from tradingagents.agents.tools import get_news
+import alpha_desk_research.agents.analysts.news_analyst as na
+from alpha_desk_research.agents.tools import get_news
 
 
 @pytest.mark.unit

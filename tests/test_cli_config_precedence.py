@@ -27,7 +27,7 @@ SELECTIONS = {
 
 
 def test_research_depth_sets_both_rounds_without_env(monkeypatch):
-    for var in ("TRADINGAGENTS_MAX_DEBATE_ROUNDS", "TRADINGAGENTS_MAX_RISK_ROUNDS"):
+    for var in ("ALPHA_DESK_MAX_DEBATE_ROUNDS", "ALPHA_DESK_MAX_RISK_ROUNDS"):
         monkeypatch.delenv(var, raising=False)
     cfg = cli_run._build_run_config(SELECTIONS, checkpoint=None)
     assert cfg["max_debate_rounds"] == 5
@@ -35,8 +35,8 @@ def test_research_depth_sets_both_rounds_without_env(monkeypatch):
 
 
 def test_env_round_counts_win_over_selection(monkeypatch):
-    monkeypatch.setenv("TRADINGAGENTS_MAX_DEBATE_ROUNDS", "2")
-    monkeypatch.setenv("TRADINGAGENTS_MAX_RISK_ROUNDS", "4")
+    monkeypatch.setenv("ALPHA_DESK_MAX_DEBATE_ROUNDS", "2")
+    monkeypatch.setenv("ALPHA_DESK_MAX_RISK_ROUNDS", "4")
     # DEFAULT_CONFIG already reflects the env (applied at import); emulate that.
     patched = dict(cli_run.DEFAULT_CONFIG, max_debate_rounds=2, max_risk_discuss_rounds=4)
     with mock.patch.object(cli_run, "DEFAULT_CONFIG", patched):
@@ -46,8 +46,8 @@ def test_env_round_counts_win_over_selection(monkeypatch):
 
 
 def test_partial_env_only_overrides_that_count(monkeypatch):
-    monkeypatch.setenv("TRADINGAGENTS_MAX_DEBATE_ROUNDS", "2")
-    monkeypatch.delenv("TRADINGAGENTS_MAX_RISK_ROUNDS", raising=False)
+    monkeypatch.setenv("ALPHA_DESK_MAX_DEBATE_ROUNDS", "2")
+    monkeypatch.delenv("ALPHA_DESK_MAX_RISK_ROUNDS", raising=False)
     patched = dict(cli_run.DEFAULT_CONFIG, max_debate_rounds=2)
     with mock.patch.object(cli_run, "DEFAULT_CONFIG", patched):
         cfg = cli_run._build_run_config(SELECTIONS, checkpoint=None)
@@ -76,9 +76,9 @@ def test_glm_resolves_to_the_endpoint_its_key_belongs_to():
     same platform: glm is Z.AI international (ZHIPU_API_KEY) and glm-cn is
     BigModel China. A mismatch sends the key to the other platform and every
     call fails auth."""
+    from alpha_desk_research.llm_clients.api_key_env import get_api_key_env
+    from alpha_desk_research.llm_clients.openai_client import OPENAI_COMPATIBLE_PROVIDERS
     from cli.prompts import resolve_backend_url
-    from tradingagents.llm_clients.api_key_env import get_api_key_env
-    from tradingagents.llm_clients.openai_client import OPENAI_COMPATIBLE_PROVIDERS
 
     assert resolve_backend_url("glm", None, None) == OPENAI_COMPATIBLE_PROVIDERS["glm"].base_url
     assert get_api_key_env("glm") == "ZHIPU_API_KEY"
@@ -91,8 +91,8 @@ def test_a_half_set_round_count_says_which_value_won(capsys, monkeypatch):
     """With only one of the two round-count variables set, the depth prompt is
     still shown but half the answer is discarded; the user was never told."""
 
-    monkeypatch.setenv("TRADINGAGENTS_MAX_DEBATE_ROUNDS", "1")
-    monkeypatch.delenv("TRADINGAGENTS_MAX_RISK_ROUNDS", raising=False)
+    monkeypatch.setenv("ALPHA_DESK_MAX_DEBATE_ROUNDS", "1")
+    monkeypatch.delenv("ALPHA_DESK_MAX_RISK_ROUNDS", raising=False)
     printed = []
     monkeypatch.setattr(m.console, "print", lambda *a, **k: printed.append(str(a[0]) if a else ""))
 
@@ -104,4 +104,4 @@ def test_a_half_set_round_count_says_which_value_won(capsys, monkeypatch):
     }, None)
 
     assert config["max_risk_discuss_rounds"] == 5
-    assert any("TRADINGAGENTS_MAX_DEBATE_ROUNDS" in line for line in printed), printed
+    assert any("ALPHA_DESK_MAX_DEBATE_ROUNDS" in line for line in printed), printed

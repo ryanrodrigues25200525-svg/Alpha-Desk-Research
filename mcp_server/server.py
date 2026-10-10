@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from tradingagents.dataflows.symbols import safe_ticker_component
+from alpha_desk_research.dataflows.symbols import safe_ticker_component
 
 from . import jobs
 from .worker import start_worker, stop_worker
@@ -59,7 +59,7 @@ SECTION_ALIASES = {
 
 
 def _default_trade_date() -> str:
-    from tradingagents.dataflows.date_window import get_current_date
+    from alpha_desk_research.dataflows.date_window import get_current_date
 
     return get_current_date()
 
@@ -88,7 +88,7 @@ def submit_research_job(
             raise ValueError("name at least one analyst")
         chosen = names
     date = trade_date if trade_date is not None else _default_trade_date()
-    from tradingagents.graph.trading_graph import _validate_trade_date
+    from alpha_desk_research.graph.trading_graph import _validate_trade_date
 
     date = _validate_trade_date(date)
     return jobs.create_job(

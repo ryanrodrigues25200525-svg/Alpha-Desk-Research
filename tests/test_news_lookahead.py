@@ -10,8 +10,8 @@ from datetime import UTC, datetime
 
 import pytest
 
-import tradingagents.dataflows.vendors.yahoo.news as ynews
-from tradingagents.dataflows.date_window import in_window
+import alpha_desk_research.dataflows.vendors.yahoo.news as ynews
+from alpha_desk_research.dataflows.date_window import in_window
 
 
 def _epoch(date_str):
@@ -167,7 +167,7 @@ def test_ticker_news_covered_but_empty_window_is_a_real_absence(monkeypatch):
       datetime(2026, 4, 1, tzinfo=UTC)], False),    # coverage reaches back
 ])
 def test_coverage_gap_boundaries(dates, expect_gap):
-    from tradingagents.dataflows.date_window import coverage_gap
+    from alpha_desk_research.dataflows.date_window import coverage_gap
 
     out = coverage_gap(dates, "2026-05-01", "2026-05-08", "Feed", "items")
     assert (out is not None) is expect_gap
@@ -177,7 +177,7 @@ def test_coverage_gap_boundaries(dates, expect_gap):
 
 @pytest.mark.unit
 def test_ticker_news_empty_feed_for_a_past_window_is_unavailable(monkeypatch):
-    from tradingagents.dataflows.errors import VendorUnavailableError
+    from alpha_desk_research.dataflows.errors import VendorUnavailableError
 
     _ticker_with([], monkeypatch)
     with pytest.raises(VendorUnavailableError):
@@ -187,7 +187,7 @@ def test_ticker_news_empty_feed_for_a_past_window_is_unavailable(monkeypatch):
 @pytest.mark.unit
 def test_ticker_news_null_feed_is_handled(monkeypatch):
     # Yahoo can return None instead of a list; that is unavailability, not a crash.
-    from tradingagents.dataflows.errors import VendorUnavailableError
+    from alpha_desk_research.dataflows.errors import VendorUnavailableError
 
     _ticker_with(None, monkeypatch)
     with pytest.raises(VendorUnavailableError):
@@ -221,7 +221,7 @@ def test_a_quote_feed_with_articles_is_not_searched(monkeypatch):
 
 @pytest.mark.unit
 def test_news_neither_yahoo_source_answers_is_a_vendor_outage(monkeypatch):
-    from tradingagents.dataflows.errors import VendorUnavailableError
+    from alpha_desk_research.dataflows.errors import VendorUnavailableError
 
     today = datetime.now(UTC).strftime("%Y-%m-%d")
     _ticker_with([], monkeypatch, search_quotes=())
@@ -233,8 +233,8 @@ def test_news_neither_yahoo_source_answers_is_a_vendor_outage(monkeypatch):
 def test_a_yahoo_news_outage_moves_to_the_next_configured_vendor(monkeypatch):
     from unittest.mock import patch
 
-    from tradingagents.dataflows import router
-    from tradingagents.dataflows.config import get_config, set_config
+    from alpha_desk_research.dataflows import router
+    from alpha_desk_research.dataflows.config import get_config, set_config
 
     _ticker_with([], monkeypatch, search_quotes=())
     calls = []
@@ -273,7 +273,7 @@ def test_search_results_never_count_as_an_absence_of_news(monkeypatch):
 def test_a_symbol_yahoo_has_no_articles_for_is_left_to_the_next_vendor(monkeypatch):
     # With its quote feed down, Yahoo serving no article about a symbol it knows
     # (every non-US listing today) says nothing about the company's news.
-    from tradingagents.dataflows.errors import VendorUnavailableError
+    from alpha_desk_research.dataflows.errors import VendorUnavailableError
 
     today = datetime.now(UTC).strftime("%Y-%m-%d")
     _ticker_with([], monkeypatch, search_quotes=("SHEL.L",),
@@ -299,7 +299,7 @@ def test_a_search_with_articles_has_answered_even_without_listing_the_symbol(mon
 
 @pytest.mark.unit
 def test_a_search_yahoo_answers_with_not_found_is_an_outage(monkeypatch):
-    from tradingagents.dataflows.errors import VendorUnavailableError
+    from alpha_desk_research.dataflows.errors import VendorUnavailableError
 
     _ticker_with([], monkeypatch)
     monkeypatch.setattr(ynews, "yf_retry", lambda fn: [] if "get_news" in repr(fn.__code__.co_names) else None)
@@ -339,7 +339,7 @@ def test_global_news_does_not_infer_coverage_from_a_stale_search_hit(monkeypatch
 def test_coverage_gap_future_window_is_unavailable():
     from datetime import timedelta
 
-    from tradingagents.dataflows.date_window import coverage_gap
+    from alpha_desk_research.dataflows.date_window import coverage_gap
     today = datetime.now(UTC).date()
     out = coverage_gap([], str(today), str(today + timedelta(days=3)), "Feed", "items")
     assert out is not None and "past today" in out

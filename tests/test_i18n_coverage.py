@@ -10,9 +10,9 @@ from pathlib import Path
 
 import pytest
 
-from tradingagents.agents.context import get_language_instruction
+from alpha_desk_research.agents.context import get_language_instruction
 
-_AGENTS_DIR = Path(__file__).resolve().parents[1] / "tradingagents" / "agents"
+_AGENTS_DIR = Path(__file__).resolve().parents[1] / "alpha_desk_research" / "agents"
 
 # Every node whose text reaches the saved report. If you add a report-producing
 # agent, add it here — and make it call get_language_instruction().
@@ -35,12 +35,12 @@ REPORT_AGENTS = [
 @pytest.mark.unit
 class TestLanguageInstruction:
     def test_english_adds_no_tokens(self, monkeypatch):
-        from tradingagents.dataflows.config import set_config
+        from alpha_desk_research.dataflows.config import set_config
         set_config({"output_language": "English"})
         assert get_language_instruction() == ""
 
     def test_non_english_emits_directive(self):
-        from tradingagents.dataflows.config import set_config
+        from alpha_desk_research.dataflows.config import set_config
         set_config({"output_language": "中文"})
         out = get_language_instruction()
         assert "中文" in out
@@ -50,7 +50,7 @@ class TestLanguageInstruction:
         # The rating is read from its "**Rating**:" line; a translated label
         # leaves the reader a translated negation ("不建议卖出 (Sell)") to find
         # instead, and a Buy reads as Sell (#1435).
-        from tradingagents.dataflows.config import set_config
+        from alpha_desk_research.dataflows.config import set_config
         set_config({"output_language": "中文"})
         out = get_language_instruction()
         assert "**Rating**:" in out and "FINAL TRANSACTION PROPOSAL" in out

@@ -1,4 +1,4 @@
-"""Background worker: run queued jobs on the TradingAgents graph."""
+"""Background worker: run queued jobs on the Alpha Desk Research graph."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import threading
 import time
 from pathlib import Path
 
-from tradingagents.default_config import DEFAULT_CONFIG
+from alpha_desk_research.default_config import DEFAULT_CONFIG
 
 from . import jobs
 
@@ -36,11 +36,11 @@ _lock = threading.Lock()
 
 
 def build_graph_factory():
-    """Build real ``TradingAgentsGraph`` instances (imported late: heavy deps)."""
+    """Build real ``AlphaDeskGraph`` instances (imported late: heavy deps)."""
 
     def factory(job: dict):
-        from tradingagents.dataflows.config import run_config_context
-        from tradingagents.graph.trading_graph import TradingAgentsGraph
+        from alpha_desk_research.dataflows.config import run_config_context
+        from alpha_desk_research.graph.trading_graph import AlphaDeskGraph
 
         config = dict(DEFAULT_CONFIG)
         for key in _CONFIG_KEYS:
@@ -51,7 +51,7 @@ def build_graph_factory():
         config["max_risk_discuss_rounds"] = job.get(
             "max_risk_discuss_rounds", config["max_risk_discuss_rounds"]
         )
-        return TradingAgentsGraph(
+        return AlphaDeskGraph(
             selected_analysts=tuple(job["analysts"]),
             config=config,
         ), run_config_context(config)

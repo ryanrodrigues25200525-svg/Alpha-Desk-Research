@@ -2,8 +2,8 @@ import unittest
 
 import pytest
 
+from alpha_desk_research.agents.context import build_instrument_context
 from cli.prompts import normalize_ticker_symbol
-from tradingagents.agents.context import build_instrument_context
 
 
 @pytest.mark.unit

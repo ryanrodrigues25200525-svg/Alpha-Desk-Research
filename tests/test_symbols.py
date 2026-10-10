@@ -4,8 +4,8 @@ import unittest
 
 import pytest
 
-from tradingagents.dataflows.errors import NoMarketDataError
-from tradingagents.dataflows.symbols import crypto_base, normalize_symbol
+from alpha_desk_research.dataflows.errors import NoMarketDataError
+from alpha_desk_research.dataflows.symbols import crypto_base, normalize_symbol
 
 
 @pytest.mark.unit

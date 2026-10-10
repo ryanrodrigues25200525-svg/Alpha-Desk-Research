@@ -21,7 +21,7 @@ def _console_out(capsys) -> str:
 
 
 def _client_module():
-    import tradingagents.llm_clients.openai_client as mod
+    import alpha_desk_research.llm_clients.openai_client as mod
     return mod
 
 
@@ -132,7 +132,7 @@ def test_confirm_endpoint_quiet_on_local_no_port(monkeypatch, capsys):
 
 def test_ollama_model_labels_no_local_suffix():
     """Labels should no longer claim '(local)' since the endpoint is dynamic."""
-    from tradingagents.llm_clients.model_catalog import get_model_options
+    from alpha_desk_research.llm_clients.model_catalog import get_model_options
     for mode in ("quick", "deep"):
         labels = [label for label, _ in get_model_options("ollama", mode)]
         assert all("local" not in label for label in labels), labels
@@ -140,7 +140,7 @@ def test_ollama_model_labels_no_local_suffix():
 
 def test_ollama_offers_custom_model_id():
     """Ollama users with custom-pulled models can pick 'Custom model ID'."""
-    from tradingagents.llm_clients.model_catalog import get_model_options
+    from alpha_desk_research.llm_clients.model_catalog import get_model_options
     for mode in ("quick", "deep"):
         entries = get_model_options("ollama", mode)
         values = [v for _, v in entries]
@@ -157,7 +157,7 @@ def test_structured_output_suppresses_object_tool_choice(monkeypatch):
     from langchain_openai import ChatOpenAI
     from pydantic import BaseModel
 
-    from tradingagents.llm_clients import create_llm_client
+    from alpha_desk_research.llm_clients import create_llm_client
 
     class Schema(BaseModel):
         x: int

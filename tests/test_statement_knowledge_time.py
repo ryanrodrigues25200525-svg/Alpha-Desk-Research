@@ -11,11 +11,11 @@ from unittest import mock
 
 import pytest
 
-from tradingagents import default_config
-from tradingagents.dataflows import router
-from tradingagents.dataflows.config import set_config
-from tradingagents.dataflows.vendors.alpha_vantage import fundamentals as alpha_vantage
-from tradingagents.dataflows.vendors.yahoo import fundamentals as yahoo
+from alpha_desk_research import default_config
+from alpha_desk_research.dataflows import router
+from alpha_desk_research.dataflows.config import set_config
+from alpha_desk_research.dataflows.vendors.alpha_vantage import fundamentals as alpha_vantage
+from alpha_desk_research.dataflows.vendors.yahoo import fundamentals as yahoo
 
 PAST = "2024-03-14"
 
@@ -41,7 +41,7 @@ def test_alpha_vantage_withholds_statements_from_a_past_run_without_asking(state
 def test_a_current_run_is_still_served_yahoo_statements():
     import pandas as pd
 
-    from tradingagents.dataflows.date_window import get_current_date
+    from alpha_desk_research.dataflows.date_window import get_current_date
 
     frame = pd.DataFrame({pd.Timestamp("2026-06-30"): [1.0]}, index=["Total Assets"])
     with mock.patch.object(yahoo, "yf_retry", return_value=frame):
@@ -71,7 +71,7 @@ def test_yahoo_withholds_insider_trades_from_a_past_run_without_asking():
 
 @pytest.mark.unit
 def test_alpha_vantage_withholds_insider_trades_from_a_past_run_without_asking():
-    from tradingagents.dataflows.vendors.alpha_vantage import news as alpha_vantage_news
+    from alpha_desk_research.dataflows.vendors.alpha_vantage import news as alpha_vantage_news
 
     with mock.patch.object(alpha_vantage_news, "_make_api_request", side_effect=AssertionError("requested")):
         out = alpha_vantage_news.get_insider_transactions("IBM", PAST)

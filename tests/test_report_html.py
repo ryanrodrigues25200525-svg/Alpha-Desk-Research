@@ -8,7 +8,7 @@ import re
 
 import pytest
 
-from tradingagents.reporting import write_report_tree
+from alpha_desk_research.reporting import write_report_tree
 
 SETTINGS = {"version": "1.2.3", "llm_provider": "openai", "deep_think_llm": "gpt-6-sol",
             "quick_think_llm": "gpt-6-luna", "analysts": ["market", "news"], "max_debate_rounds": 1,
@@ -142,7 +142,7 @@ def test_the_page_heading_is_the_ticker_and_its_rating(tmp_path):
 def test_the_header_carries_the_official_logo_unaltered(tmp_path):
     from importlib.resources import files
 
-    logo = files("tradingagents").joinpath("assets/tauric-logo.svg").read_text(encoding="utf-8").strip()
+    logo = files("alpha_desk_research").joinpath("assets/tauric-logo.svg").read_text(encoding="utf-8").strip()
     page = _html(tmp_path)
     header = page[page.index("<header"):page.index("</header>")]
     assert logo in header                           # drawn in the page, nothing fetched
@@ -154,7 +154,8 @@ def test_the_header_carries_the_official_logo_unaltered(tmp_path):
 def test_the_page_credits_its_maker_in_a_line_of_text(tmp_path):
     page = _html(tmp_path)
     footer = page[page.index('<footer class="credit">'):page.index("</footer>")]
-    assert re.sub(r"<[^>]+>", "", footer).split() == ["TradingAgents", "powered", "by", "Tauric", "Research"]
+    assert re.sub(r"<[^>]+>", "", footer).split() == [
+        "Alpha", "Desk", "Research", "powered", "by", "Tauric", "Research"]
     # The logo already leads to tauric.ai; the credit leads to the project and the org.
     assert 'href="https://github.com/TauricResearch/TradingAgents"' in footer
     assert 'href="https://github.com/TauricResearch"' in footer and "tauric.ai" not in footer
@@ -168,7 +169,7 @@ def test_the_packaged_logo_stays_inert(tmp_path):
     # no script, event handler, link, embedded document or external reference.
     from importlib.resources import files
 
-    logo = files("tradingagents").joinpath("assets/tauric-logo.svg").read_text(encoding="utf-8")
+    logo = files("alpha_desk_research").joinpath("assets/tauric-logo.svg").read_text(encoding="utf-8")
     tags = set(re.findall(r"<\s*([a-zA-Z][\w:-]*)", logo))
     assert tags <= {"svg", "path", "rect", "circle", "g", "defs", "clipPath", "linearGradient", "stop"}
     assert not re.search(r"\son\w+\s*=|href|url\(|@import|javascript:|<!entity|<!doctype", logo, re.IGNORECASE)

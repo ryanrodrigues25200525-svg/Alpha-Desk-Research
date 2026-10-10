@@ -2,13 +2,13 @@ import sys
 
 import typer
 
+from alpha_desk_research.backtest import iter_grid, run_backtest, summarize
+from alpha_desk_research.default_config import DEFAULT_CONFIG
+from alpha_desk_research.portfolio import load_portfolio
 from cli.display import console
 from cli.models import AnalystType, AssetType
 from cli.prompts import filter_analysts_for_asset_type, parse_analysts
 from cli.run import run_analysis
-from tradingagents.backtest import iter_grid, run_backtest, summarize
-from tradingagents.default_config import DEFAULT_CONFIG
-from tradingagents.portfolio import load_portfolio
 
 # prompt_toolkit's win32 output module is importable only on Windows (it asserts
 # the platform at import time), so gate on the platform rather than catching the
@@ -36,7 +36,7 @@ def analyze(
         None,
         "--checkpoint/--no-checkpoint",
         help="Enable/disable checkpoint-resume (save state after each node so a "
-        "crashed run can resume). Omit to honor TRADINGAGENTS_CHECKPOINT_ENABLED.",
+        "crashed run can resume). Omit to honor ALPHA_DESK_CHECKPOINT_ENABLED.",
     ),
     clear_checkpoints: bool = typer.Option(
         False,
@@ -72,12 +72,12 @@ def analyze(
     """Run an analysis. This is what a bare `alpha-desk` does.
 
     Flags answer their questions; with provider, models, depth and language also
-    set through TRADINGAGENTS_* variables, the run asks nothing.
+    set through ALPHA_DESK_* variables, the run asks nothing.
     """
     if ctx.invoked_subcommand is not None:
         return
     if clear_checkpoints:
-        from tradingagents.graph.checkpointer import clear_all_checkpoints
+        from alpha_desk_research.graph.checkpointer import clear_all_checkpoints
         n = clear_all_checkpoints(DEFAULT_CONFIG["data_cache_dir"])
         console.print(f"[yellow]Cleared {n} checkpoint(s).[/yellow]")
     portfolio_context = None

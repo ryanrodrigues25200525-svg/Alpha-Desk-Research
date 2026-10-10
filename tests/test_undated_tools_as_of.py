@@ -12,10 +12,10 @@ from unittest import mock
 import pandas as pd
 import pytest
 
-from tradingagents.agents import tools
-from tradingagents.dataflows.date_window import get_current_date
-from tradingagents.dataflows.vendors import polymarket
-from tradingagents.dataflows.vendors.yahoo import (
+from alpha_desk_research.agents import tools
+from alpha_desk_research.dataflows.date_window import get_current_date
+from alpha_desk_research.dataflows.vendors import polymarket
+from alpha_desk_research.dataflows.vendors.yahoo import (
     fundamentals as yahoo_fundamentals,
     market as yahoo_market,
 )
@@ -71,7 +71,7 @@ def test_a_historical_run_gets_the_current_name_only_as_an_identifier(monkeypatc
     """The profile is today's. The name still tells the company apart from others
     (#814), so a past run keeps it, marked as today's; a sector, industry or
     exchange that may not have held on the run's date is not given."""
-    from tradingagents.agents.context import build_instrument_context
+    from alpha_desk_research.agents.context import build_instrument_context
 
     identity = {"company_name": "Example Corp", "sector": "Technology",
                 "industry": "Software", "exchange": "NMS"}
@@ -85,8 +85,8 @@ def test_a_historical_run_gets_the_current_name_only_as_an_identifier(monkeypatc
 
 @pytest.mark.unit
 def test_a_current_run_is_not_cluttered_with_a_vintage_note(monkeypatch):
-    from tradingagents.agents.context import build_instrument_context
-    from tradingagents.dataflows.date_window import get_current_date
+    from alpha_desk_research.agents.context import build_instrument_context
+    from alpha_desk_research.dataflows.date_window import get_current_date
 
     today = build_instrument_context("EXMP", "stock", {"company_name": "Example Corp"},
                                      trade_date=get_current_date())
@@ -99,7 +99,7 @@ def test_an_indicator_that_could_not_be_read_is_not_shown_as_a_blank_value():
     """The per-day fallback returned an empty string for a failed read, so the
     table rendered a row per day with nothing after the colon: an analyst reads
     that as "no value on that day" rather than "could not be obtained"."""
-    from tradingagents.dataflows.errors import VendorError
+    from alpha_desk_research.dataflows.errors import VendorError
 
     with mock.patch.object(yahoo_market, "get_stock_stats",
                            side_effect=RuntimeError("cache parse failed")), \
@@ -122,7 +122,7 @@ def test_a_yfinance_failure_is_a_vendor_error_not_a_report(func, args):
     """Returning the failure as text makes the router count it as an answer, so
     the chain stops and the analyst reads the error message as if it were data.
     yfinance serves the default path, so this is the one that matters most."""
-    from tradingagents.dataflows.errors import VendorError
+    from alpha_desk_research.dataflows.errors import VendorError
 
     with mock.patch.object(yahoo_market.yf, "Ticker", side_effect=RuntimeError("yahoo hiccup")), \
             pytest.raises(VendorError):
@@ -135,8 +135,8 @@ def test_a_yfinance_failure_is_a_vendor_error_not_a_report(func, args):
     ("get_global_news_yfinance", ("2026-09-01", 7, 5)),
 ])
 def test_a_yfinance_news_failure_is_a_vendor_error_not_a_report(func, args):
-    from tradingagents.dataflows.errors import VendorError
-    from tradingagents.dataflows.vendors.yahoo import news as yahoo_news
+    from alpha_desk_research.dataflows.errors import VendorError
+    from alpha_desk_research.dataflows.vendors.yahoo import news as yahoo_news
 
     target = "Ticker" if "global" not in func else "Search"
     with mock.patch.object(yahoo_news.yf, target, side_effect=RuntimeError("yahoo hiccup")), \
@@ -151,8 +151,8 @@ def test_an_unreachable_vendor_is_not_reported_as_a_missing_symbol(monkeypatch):
     company has no balance sheet, when the truth is we could not ask."""
     import pandas as pd
 
-    from tradingagents.dataflows.errors import NoMarketDataError, VendorUnavailableError
-    from tradingagents.dataflows.vendors.yahoo import common
+    from alpha_desk_research.dataflows.errors import NoMarketDataError, VendorUnavailableError
+    from alpha_desk_research.dataflows.vendors.yahoo import common
 
     empty = mock.Mock(quarterly_balance_sheet=pd.DataFrame(), balance_sheet=pd.DataFrame())
     monkeypatch.setattr(yahoo_market.yf, "Ticker", lambda s: empty)
@@ -170,9 +170,9 @@ def test_an_unreachable_vendor_is_not_reported_as_a_missing_symbol(monkeypatch):
 def test_every_vendor_unavailable_says_so_rather_than_crashing(monkeypatch):
     """A throttled or unreachable chain used to raise RuntimeError('No available
     vendor'), which ends the run, and never said the vendor was the problem."""
-    from tradingagents.dataflows import router
-    from tradingagents.dataflows.config import set_config
-    from tradingagents.dataflows.errors import VendorUnavailableError
+    from alpha_desk_research.dataflows import router
+    from alpha_desk_research.dataflows.config import set_config
+    from alpha_desk_research.dataflows.errors import VendorUnavailableError
 
     def _down(*a, **k):
         raise VendorUnavailableError("Yahoo Finance is unreachable")
@@ -192,8 +192,8 @@ def test_the_price_path_also_tells_an_outage_from_an_unknown_symbol(monkeypatch)
     delisted symbol either."""
     import pandas as pd
 
-    from tradingagents.dataflows.errors import NoMarketDataError, VendorUnavailableError
-    from tradingagents.dataflows.vendors.yahoo import common
+    from alpha_desk_research.dataflows.errors import NoMarketDataError, VendorUnavailableError
+    from alpha_desk_research.dataflows.vendors.yahoo import common
 
     monkeypatch.setattr(yahoo_market.yf, "Ticker", lambda s: mock.Mock(history=lambda **k: pd.DataFrame()))
 
@@ -242,8 +242,8 @@ def _dates_after(text: str, cutoff: str) -> list[str]:
 def test_an_unavailable_notice_names_no_date_after_the_run():
     """A notice explaining why data is missing named where the vendor's coverage
     starts or today's date, both after a historical run's date."""
-    from tradingagents.agents.context import build_instrument_context
-    from tradingagents.dataflows.date_window import (
+    from alpha_desk_research.agents.context import build_instrument_context
+    from alpha_desk_research.dataflows.date_window import (
         coverage_gap,
         get_current_date,
         withhold_live_profile,

@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import pytest
 
-import tradingagents.default_config as default_config_module
-from tradingagents.llm_clients.factory import _coerce_max_retries, build_llm_kwargs
+import alpha_desk_research.default_config as default_config_module
+from alpha_desk_research.llm_clients.factory import _coerce_max_retries, build_llm_kwargs
 
 # --- coercion / validation -------------------------------------------------
 
@@ -89,7 +89,7 @@ def test_default_is_none(monkeypatch):
 
 @pytest.mark.unit
 def test_env_override_sets_config(monkeypatch):
-    config = _config_with_env(monkeypatch, TRADINGAGENTS_LLM_MAX_RETRIES="8")
+    config = _config_with_env(monkeypatch, ALPHA_DESK_LLM_MAX_RETRIES="8")
     # None-default key: env value arrives as a string and is coerced downstream.
     assert config["llm_max_retries"] == "8"
     assert _coerce_max_retries(config["llm_max_retries"]) == 8

@@ -7,9 +7,9 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from tradingagents.dataflows import files
-from tradingagents.dataflows.vendors import sec_edgar
-from tradingagents.dataflows.vendors.yahoo import ohlcv
+from alpha_desk_research.dataflows import files
+from alpha_desk_research.dataflows.vendors import sec_edgar
+from alpha_desk_research.dataflows.vendors.yahoo import ohlcv
 
 
 def _recording_replace(monkeypatch):
@@ -56,7 +56,7 @@ def test_the_price_cache_is_replaced_whole(monkeypatch, tmp_path):
 
 @pytest.mark.unit
 def test_a_replaced_file_keeps_the_usual_permissions(tmp_path):
-    from tradingagents.dataflows.files import replace_file
+    from alpha_desk_research.dataflows.files import replace_file
 
     plain = tmp_path / "plain.txt"
     plain.write_text("x")
@@ -70,7 +70,7 @@ def test_a_replaced_file_keeps_the_usual_permissions(tmp_path):
 def test_a_file_held_open_elsewhere_keeps_its_old_content(monkeypatch, tmp_path):
     """On Windows a file another reader has open cannot be replaced; the cache
     write is skipped rather than failing the call that produced the data."""
-    from tradingagents.dataflows import files
+    from alpha_desk_research.dataflows import files
 
     target = tmp_path / "cache.csv"
     target.write_text("old")

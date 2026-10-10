@@ -11,12 +11,12 @@ import unittest
 
 import pytest
 
+from alpha_desk_research.graph.analyst_execution import build_analyst_execution_plan
 from cli.display import (
     AnalystWallTimeTracker,
     extract_content_string,
     sync_analyst_tracker_from_chunk,
 )
-from tradingagents.graph.analyst_execution import build_analyst_execution_plan
 
 
 @pytest.mark.unit
@@ -58,9 +58,9 @@ def _state(ticker, final="评级: 买入"):
 
 
 def _bare_graph(tmp_path):
-    from tradingagents.graph.trading_graph import TradingAgentsGraph
+    from alpha_desk_research.graph.trading_graph import AlphaDeskGraph
 
-    graph = object.__new__(TradingAgentsGraph)
+    graph = object.__new__(AlphaDeskGraph)
     graph.config = {"results_dir": str(tmp_path), "llm_provider": "openai", "deep_think_llm": "d",
                     "quick_think_llm": "q", "max_debate_rounds": 1, "max_risk_discuss_rounds": 1,
                     "output_language": "English", "data_vendors": {}, "tool_vendors": {}}

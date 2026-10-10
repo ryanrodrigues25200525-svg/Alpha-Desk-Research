@@ -7,7 +7,7 @@ import pytest
 
 
 def _blank_settings_overlay():
-    """Blank every TRADINGAGENTS_* setting before the package is imported.
+    """Blank every ALPHA_DESK_* setting before the package is imported.
 
     The package loads .env on import and folds these variables into
     DEFAULT_CONFIG, so a contributor's own settings would become the defaults
@@ -20,7 +20,7 @@ def _blank_settings_overlay():
     for filename in (".env", ".env.enterprise"):
         names |= set(dotenv_values(find_dotenv(filename, usecwd=True)))
     for name in names:
-        if name.startswith("TRADINGAGENTS_"):
+        if name.startswith("ALPHA_DESK_"):
             os.environ[name] = ""
 
 
@@ -35,10 +35,10 @@ def _own_file_locations():
     """
     import tempfile
 
-    home = tempfile.mkdtemp(prefix="tradingagents-tests-")
-    os.environ["TRADINGAGENTS_RESULTS_DIR"] = os.path.join(home, "logs")
-    os.environ["TRADINGAGENTS_CACHE_DIR"] = os.path.join(home, "cache")
-    os.environ["TRADINGAGENTS_MEMORY_LOG_PATH"] = os.path.join(home, "memory", "trading_memory.md")
+    home = tempfile.mkdtemp(prefix="alpha_desk_research-tests-")
+    os.environ["ALPHA_DESK_RESULTS_DIR"] = os.path.join(home, "logs")
+    os.environ["ALPHA_DESK_CACHE_DIR"] = os.path.join(home, "cache")
+    os.environ["ALPHA_DESK_MEMORY_LOG_PATH"] = os.path.join(home, "memory", "trading_memory.md")
 
 
 _own_file_locations()
@@ -53,7 +53,7 @@ def pytest_configure(config):
 
     import yfinance
 
-    yfinance.set_tz_cache_location(tempfile.mkdtemp(prefix="tradingagents-tests-yf-"))
+    yfinance.set_tz_cache_location(tempfile.mkdtemp(prefix="alpha_desk_research-tests-yf-"))
 
 
 @pytest.fixture(autouse=True)
@@ -127,8 +127,8 @@ def _isolate_config():
     """
     import copy
 
-    import tradingagents.dataflows.config as config_module
-    import tradingagents.default_config as default_config
+    import alpha_desk_research.dataflows.config as config_module
+    import alpha_desk_research.default_config as default_config
 
     config_module._config = copy.deepcopy(default_config.DEFAULT_CONFIG)
     yield

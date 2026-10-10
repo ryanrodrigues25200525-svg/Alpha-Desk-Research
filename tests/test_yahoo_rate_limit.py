@@ -11,7 +11,7 @@ import yfinance as yf
 from yfinance.data import YfData
 from yfinance.exceptions import YFRateLimitError
 
-from tradingagents.agents.tools import (
+from alpha_desk_research.agents.tools import (
     get_global_news,
     get_indicators,
     get_insider_transactions,
@@ -19,11 +19,11 @@ from tradingagents.agents.tools import (
     get_stock_data,
     get_verified_market_snapshot,
 )
-from tradingagents.dataflows import router
-from tradingagents.dataflows.config import set_config
-from tradingagents.dataflows.date_window import get_current_date
-from tradingagents.dataflows.errors import VendorUnavailableError
-from tradingagents.dataflows.vendors.yahoo import common, fundamentals, ohlcv
+from alpha_desk_research.dataflows import router
+from alpha_desk_research.dataflows.config import set_config
+from alpha_desk_research.dataflows.date_window import get_current_date
+from alpha_desk_research.dataflows.errors import VendorUnavailableError
+from alpha_desk_research.dataflows.vendors.yahoo import common, fundamentals, ohlcv
 
 DAY = "2026-09-18"
 
@@ -153,8 +153,8 @@ class _Unreachable:
 
 
 def _yahoo_calls():
-    from tradingagents.dataflows.date_window import get_current_date
-    from tradingagents.dataflows.vendors.yahoo import market, news
+    from alpha_desk_research.dataflows.date_window import get_current_date
+    from alpha_desk_research.dataflows.vendors.yahoo import market, news
 
     today = get_current_date()
     return [
@@ -188,8 +188,8 @@ def test_a_yahoo_request_that_fails_is_unavailable_not_absent(yahoo, call):
 ])
 def test_a_snapshot_with_no_rows_is_reported_not_raised(yahoo, frame):
     """An exception out of a tool ends the run; no rows is an answer about the symbol."""
-    from tradingagents.dataflows.errors import NoMarketDataError
-    from tradingagents.dataflows.vendors.yahoo import snapshot
+    from alpha_desk_research.dataflows.errors import NoMarketDataError
+    from alpha_desk_research.dataflows.vendors.yahoo import snapshot
 
     def load(symbol, as_of_date, **kwargs):
         if frame.empty:
@@ -231,7 +231,7 @@ def test_yahoo_answering_not_found_is_no_data(yahoo, call):
     from curl_cffi.requests import Response
     from curl_cffi.requests.exceptions import HTTPError
 
-    from tradingagents.dataflows.errors import NoMarketDataError
+    from alpha_desk_research.dataflows.errors import NoMarketDataError
 
     not_found = Response()
     not_found.status_code = 404
@@ -258,8 +258,8 @@ def test_only_yahoo_saying_a_window_has_no_prices_is_no_data(yahoo, debug, reaso
     and when its answer was an error; only the first is a fact about the symbol."""
     from yfinance.exceptions import YFPricesMissingError
 
-    from tradingagents.dataflows.errors import NoMarketDataError
-    from tradingagents.dataflows.vendors.yahoo import market
+    from alpha_desk_research.dataflows.errors import NoMarketDataError
+    from alpha_desk_research.dataflows.vendors.yahoo import market
 
     def no_prices(self, **kwargs):
         raise YFPricesMissingError("AAPL", debug, yahoo_reason=reason)
@@ -275,7 +275,7 @@ def test_a_missing_time_zone_is_not_taken_for_an_answer(yahoo):
     """yfinance reports a failed time-zone lookup the same way as a symbol without one."""
     from yfinance.exceptions import YFTzMissingError
 
-    from tradingagents.dataflows.vendors.yahoo import market
+    from alpha_desk_research.dataflows.vendors.yahoo import market
 
     def no_tz(self, **kwargs):
         raise YFTzMissingError("AAPL")
