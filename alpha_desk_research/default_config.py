@@ -84,6 +84,7 @@ def build_default_config() -> dict:
         "results_dir": os.getenv("ALPHA_DESK_RESULTS_DIR") or os.path.join(_ALPHA_DESK_HOME, "logs"),
         "data_cache_dir": os.getenv("ALPHA_DESK_CACHE_DIR") or os.path.join(_ALPHA_DESK_HOME, "cache"),
         "memory_log_path": os.getenv("ALPHA_DESK_MEMORY_LOG_PATH") or os.path.join(_ALPHA_DESK_HOME, "memory", "trading_memory.md"),
+        "run_index_path": os.getenv("ALPHA_DESK_RUN_INDEX_PATH") or os.path.join(_ALPHA_DESK_HOME, "memory", "runs.jsonl"),
         # Optional cap on the number of resolved memory log entries. When set,
         # the oldest resolved entries are pruned once this limit is exceeded.
         # Pending entries are never pruned. None disables rotation entirely.

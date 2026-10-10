@@ -62,3 +62,12 @@ def test_an_unserializable_record_is_reported_not_raised(tmp_path):
 
 def test_a_default_construction_uses_the_live_configuration():
     assert RunIndex().path.name == "runs.jsonl"
+
+
+def test_the_index_path_comes_from_the_environment_like_its_siblings(tmp_path, monkeypatch):
+    from alpha_desk_research.default_config import DEFAULT_CONFIG, build_default_config
+
+    monkeypatch.setenv("ALPHA_DESK_RUN_INDEX_PATH", str(tmp_path / "custom.jsonl"))
+    assert DEFAULT_CONFIG["run_index_path"].endswith("runs.jsonl")  # import-time default
+    assert build_default_config()["run_index_path"] == str(tmp_path / "custom.jsonl")
+    assert default_index_path(build_default_config()) == tmp_path / "custom.jsonl"
