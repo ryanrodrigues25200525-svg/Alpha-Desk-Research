@@ -14,13 +14,17 @@ import pytest
 import cli.run as cli_run
 from alpha_desk_research.graph.trading_graph import AlphaDeskGraph
 from alpha_desk_research.memory import TradingMemoryLog
+from alpha_desk_research.memory.run_index import RunIndex
 
 
 def _bare_graph(tmp_path):
     """A graph without __init__ (no LLM clients), wired to a temp log."""
     graph = object.__new__(AlphaDeskGraph)
-    graph.config = {"memory_log_path": str(tmp_path / "trading_memory.md")}
+    graph.config = {"memory_log_path": str(tmp_path / "trading_memory.md"),
+                    "max_debate_rounds": 1, "max_risk_discuss_rounds": 1}
+    graph.selected_analysts = ("market",)
     graph.memory_log = TradingMemoryLog(graph.config)
+    graph.run_index = RunIndex(graph.config)
     graph._log_state = lambda *a: None   # these tests are about the memory log
     return graph
 
@@ -56,8 +60,9 @@ class _FakeGraph:
         self.calls.append(("create_run_state", ticker, trade_date))
         return {"messages": [], "company_of_interest": ticker}
 
-    def record_decision(self, ticker, trade_date, final_state):
-        self.calls.append(("record_decision", ticker, trade_date, final_state.get("final_trade_decision")))
+    def record_decision(self, ticker, trade_date, final_state, asset_type="stock", portfolio=None):
+        self.calls.append(("record_decision", ticker, trade_date,
+                           final_state.get("final_trade_decision"), asset_type))
 
     def get_graph_args(self, callbacks=None):
         return {}
@@ -148,7 +153,7 @@ def test_cli_run_uses_the_memory_log_like_propagate(tmp_path, monkeypatch):
         ("create_run_state", "NVDA", "2026-01-10"),
         # The decision is recorded from the merged stream, before the checkpoint
         # is cleared, matching propagate().
-        ("record_decision", "NVDA", "2026-01-10", "Rating: Buy\n\nBuy NVDA."),
+        ("record_decision", "NVDA", "2026-01-10", "Rating: Buy\n\nBuy NVDA.", "stock"),
         ("clear_checkpoint",),
     ]
 
@@ -175,9 +180,11 @@ def test_recording_a_run_writes_its_state_log(tmp_path):
     graph = object.__new__(AlphaDeskGraph)
     graph.config = {"results_dir": str(tmp_path), "llm_provider": "openai", "deep_think_llm": "d",
                     "quick_think_llm": "q", "max_debate_rounds": 1, "max_risk_discuss_rounds": 1,
-                    "output_language": "English", "data_vendors": {}, "tool_vendors": {}}
+                    "output_language": "English", "data_vendors": {}, "tool_vendors": {},
+                    "run_index_path": str(tmp_path / "runs.jsonl")}
     graph.selected_analysts = ("market",)
     graph.memory_log = TradingMemoryLog({"memory_log_path": str(tmp_path / "m.md")})
+    graph.run_index = RunIndex(graph.config)
     state = {"company_of_interest": "NVDA", "trade_date": "2026-09-23", "market_report": "M",
              "sentiment_report": "", "news_report": "", "fundamentals_report": "",
              "investment_debate_state": {"bull_history": "", "bear_history": "", "history": "",

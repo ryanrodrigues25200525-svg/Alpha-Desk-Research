@@ -3,13 +3,13 @@ import json
 import logging
 import os
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import alpha_desk_research
 from alpha_desk_research.agents.context import build_instrument_context, resolve_instrument_identity
-from alpha_desk_research.agents.rating import run_rating
+from alpha_desk_research.agents.rating import RATING_REVIEW, run_rating
 from alpha_desk_research.dataflows.config import run_config, run_config_context, set_config
 from alpha_desk_research.dataflows.date_window import get_current_date, is_historical
 from alpha_desk_research.dataflows.symbols import safe_ticker_component
@@ -17,6 +17,7 @@ from alpha_desk_research.default_config import DEFAULT_CONFIG
 from alpha_desk_research.llm_clients import create_tier_client, tier_provider
 from alpha_desk_research.memory import TradingMemoryLog, settlement
 from alpha_desk_research.memory.reflection import Reflector
+from alpha_desk_research.memory.run_index import RunIndex, RunRecord
 from alpha_desk_research.reporting import write_report_tree
 
 from .checkpointer import checkpoint_step, clear_checkpoint, get_checkpointer, thread_id
@@ -80,6 +81,7 @@ class AlphaDeskGraph:
         self.quick_thinking_llm = create_tier_client(self.config, "quick", **extra).get_llm()
 
         self.memory_log = TradingMemoryLog(self.config)
+        self.run_index = RunIndex(self.config)
 
         self.conditional_logic = ConditionalLogic(
             max_debate_rounds=self.config["max_debate_rounds"],
@@ -355,10 +357,29 @@ class AlphaDeskGraph:
         with run_config(self.config):
             return settlement.settle_all_pending(self.memory_log, self.reflector, self.config, wait=wait)
 
-    def record_decision(self, company_name, trade_date, final_state):
-        """Record a finished run: its state log, and its decision in the memory log
-        for reflection on the next same-ticker run. propagate() and the CLI both end here."""
+    def record_decision(self, company_name, trade_date, final_state,
+                        asset_type="stock", portfolio=None):
+        """Record a finished run: its index line, its state log, and its decision in
+        the memory log for reflection on the next same-ticker run. propagate() and the
+        CLI both end here."""
         self._log_state(trade_date, final_state)
+
+        # Every attempt is indexed, the ones that decided nothing included: the index
+        # counts the runs that produced no decision, which the memory log cannot.
+        # Instrumentation never fails the run it describes, so a failed append warns.
+        if not self.run_index.append(RunRecord(
+            ts=datetime.now(UTC).isoformat(timespec="seconds"),
+            ticker=company_name,
+            trade_date=str(trade_date),
+            rating=(run_rating(final_state)
+                    if final_state.get("final_trade_decision") else RATING_REVIEW),
+            asset_type=asset_type,
+            signature=self._run_signature(asset_type, portfolio),
+            settings=self.run_settings(),
+        )):
+            logger.warning("Could not append a run index entry for %s on %s",
+                           company_name, trade_date)
+
         decision = final_state.get("final_trade_decision")
         if not decision:
             logger.warning("No final decision for %s on %s; nothing added to the memory log",
@@ -396,7 +417,7 @@ class AlphaDeskGraph:
         else:
             final_state = self.graph.invoke(graph_input, **args)
 
-        self.record_decision(company_name, trade_date, final_state)
+        self.record_decision(company_name, trade_date, final_state, asset_type, portfolio)
 
         # Clear checkpoint on successful completion to avoid stale state.
         self.clear_checkpoint_on_success(company_name, trade_date, asset_type, portfolio)

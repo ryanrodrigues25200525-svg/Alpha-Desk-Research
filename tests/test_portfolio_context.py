@@ -79,11 +79,13 @@ def _bare_graph(tmp_path):
     from alpha_desk_research.graph.propagation import Propagator
     from alpha_desk_research.graph.trading_graph import AlphaDeskGraph
     from alpha_desk_research.memory import TradingMemoryLog
+    from alpha_desk_research.memory.run_index import RunIndex
 
     graph = object.__new__(AlphaDeskGraph)
     graph.config = {"memory_log_path": str(tmp_path / "m.md"), "max_debate_rounds": 1,
                     "max_risk_discuss_rounds": 1}
     graph.memory_log = TradingMemoryLog(graph.config)
+    graph.run_index = RunIndex(graph.config)
     graph.propagator = Propagator()
     graph.selected_analysts = ["market"]
     graph.settle_pending = lambda t: None
