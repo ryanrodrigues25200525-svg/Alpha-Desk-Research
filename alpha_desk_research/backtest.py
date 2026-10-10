@@ -27,6 +27,7 @@ from alpha_desk_research.dataflows.date_window import get_current_date
 from alpha_desk_research.dataflows.symbols import safe_ticker_component
 from alpha_desk_research.graph.trading_graph import AlphaDeskGraph
 from alpha_desk_research.memory import TradingMemoryLog
+from alpha_desk_research.memory.scoring import RatingScore, alpha_of, score_entries
 
 logger = logging.getLogger(__name__)
 
@@ -62,19 +63,6 @@ def _canonical(date: str) -> datetime:
     return parsed
 
 
-def _alpha(entry: dict) -> float | None:
-    """Alpha return of a settled entry, or None when it has not settled.
-
-    The log stores it as a percentage rounded to one decimal, so aggregates here
-    are accurate to 0.1 of a percentage point, not to the raw quote.
-    """
-    text = (entry.get("alpha") or "").strip().rstrip("%")
-    try:
-        return float(text) / 100
-    except ValueError:
-        return None
-
-
 @dataclass
 class BacktestResult:
     run_id: str
@@ -83,18 +71,6 @@ class BacktestResult:
     skipped: int = 0
     failures: list[tuple[str, str, str]] = field(default_factory=list)
     settlement_failures: list[tuple[str, str]] = field(default_factory=list)
-
-
-# What each rating claims will happen, so an outcome can be scored against it.
-# Hold claims no direction, so nothing about alpha proves it right or wrong.
-_DIRECTION = {"Buy": 1, "Overweight": 1, "Hold": 0, "Underweight": -1, "Sell": -1}
-
-
-@dataclass
-class RatingScore:
-    count: int
-    hit_rate: float | None
-    mean_alpha: float
 
 
 @dataclass
@@ -192,23 +168,13 @@ def summarize(source: BacktestResult | str | Path) -> BacktestSummary:
     entries = TradingMemoryLog({"memory_log_path": str(path)}).load_entries()
     # A decision with no readable rating has no direction, so it can neither
     # count for nor against the system; it is reported as unscored instead.
-    resolved = [(e, _alpha(e)) for e in entries
-                if not e["pending"] and e["rating"] != RATING_REVIEW]
-    resolved = [(e, a) for e, a in resolved if a is not None]
-    by_rating: dict[str, RatingScore] = {}
-    for rating in dict.fromkeys(e["rating"] for e, _ in resolved):
-        alphas = [a for e, a in resolved if e["rating"] == rating]
-        direction = _DIRECTION.get(rating, 0)
-        by_rating[rating] = RatingScore(
-            count=len(alphas),
-            hit_rate=(sum(a * direction > 0 for a in alphas) / len(alphas)) if direction else None,
-            mean_alpha=sum(alphas) / len(alphas),
-        )
+    resolved = [e for e in entries if not e["pending"] and e["rating"] != RATING_REVIEW]
+    resolved = [e for e in resolved if alpha_of(e) is not None]
     unscored = sum(1 for e in entries if e["rating"] == RATING_REVIEW)
     # Report the window the outcomes were actually measured over, from the log.
-    windows = {f"{e['holding'][:-1]} trading days" for e, _ in resolved
+    windows = {f"{e['holding'][:-1]} trading days" for e in resolved
                if (e.get("holding") or "").endswith("d")}
     return BacktestSummary(resolved=len(resolved),
                            pending=len(entries) - len(resolved) - unscored,
-                           by_rating=by_rating, unscored=unscored,
+                           by_rating=score_entries(resolved), unscored=unscored,
                            holding=", ".join(sorted(windows)) or "the configured window")
