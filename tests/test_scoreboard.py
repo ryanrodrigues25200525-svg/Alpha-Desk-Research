@@ -13,7 +13,7 @@ import pytest
 from alpha_desk_research.backtest import summarize
 from alpha_desk_research.memory import TradingMemoryLog
 from alpha_desk_research.memory.run_index import RunRecord
-from alpha_desk_research.memory.scoreboard import DIMENSIONS, build_scoreboard
+from alpha_desk_research.scoreboard import DIMENSIONS, build_scoreboard
 
 
 def _entry(rating, alpha, *, date="2026-01-05", ticker="NVDA", holding="5d", pending=False):
