@@ -6,10 +6,13 @@ has to stay the default action while a second command exists alongside it.
 
 from __future__ import annotations
 
+import json
+
 import pytest
 from typer.testing import CliRunner
 
 import cli.main as m
+from alpha_desk_research.memory import TradingMemoryLog
 
 
 @pytest.fixture
@@ -180,3 +183,46 @@ def test_backtest_refuses_a_selection_before_the_sweep(runner, monkeypatch, args
     result = runner.invoke(m.app, ["backtest", "NVDA", "--start", "2026-06-01", "--end", "2026-06-01", *args])
 
     assert result.exit_code == 1
+
+
+def _seeded_log(tmp_path):
+    """A memory log with settled decisions, written through the log's own writer.
+
+    Two outcomes over a Buy and a Sell put a rate on the rating rows, and one
+    decision is left pending so the board says how much of the log is settled.
+    """
+    log = TradingMemoryLog({"memory_log_path": str(tmp_path / "m.md")})
+    rows = [
+        ("NVDA", "2026-01-05", "Rating: Buy\n\nbuy it", (0.10, 0.04)),
+        ("AAPL", "2026-01-05", "Rating: Sell\n\nsell it", (0.05, 0.03)),
+        ("TSLA", "2026-01-12", "Rating: Buy\n\nbuy it", None),
+    ]
+    for ticker, date, decision, outcome in rows:
+        log.store_decision(ticker, date, decision)
+        if outcome is not None:
+            log.update_with_outcome(ticker, date, outcome[0], outcome[1], 5, "note", "2026-02-01")
+    return tmp_path / "m.md"
+
+
+@pytest.mark.unit
+def test_scoreboard_prints_the_track_record(runner, tmp_path, monkeypatch):
+    monkeypatch.setenv("ALPHA_DESK_MEMORY_LOG_PATH", str(_seeded_log(tmp_path)))
+    result = runner.invoke(m.app, ["scoreboard"])
+    assert result.exit_code == 0 and "overall" in result.stdout
+
+
+@pytest.mark.unit
+def test_scoreboard_json_is_machine_readable(runner, tmp_path, monkeypatch):
+    result = runner.invoke(m.app, ["scoreboard", "--json"])
+    assert json.loads(result.stdout)["overall"]["count"] >= 0
+
+
+@pytest.mark.unit
+def test_scoreboard_can_score_an_arbitrary_log(runner, tmp_path):
+    assert runner.invoke(m.app, ["scoreboard", "--log", str(_seeded_log(tmp_path))]).exit_code == 0
+
+
+@pytest.mark.unit
+def test_scoreboard_does_not_also_run_an_analysis(runner, tmp_path):
+    runner.invoke(m.app, ["scoreboard"])
+    assert calls == []  # same guard test_cli_commands.py already uses for `backtest`

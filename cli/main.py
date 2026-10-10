@@ -1,10 +1,15 @@
+import json
 import sys
+from pathlib import Path
 
 import typer
 
 from alpha_desk_research.backtest import iter_grid, run_backtest, summarize
-from alpha_desk_research.default_config import DEFAULT_CONFIG
+from alpha_desk_research.default_config import DEFAULT_CONFIG, build_default_config
+from alpha_desk_research.memory import TradingMemoryLog
+from alpha_desk_research.memory.run_index import RunIndex
 from alpha_desk_research.portfolio import load_portfolio
+from alpha_desk_research.scoreboard import as_dict, build_scoreboard, render
 from cli.display import console
 from cli.models import AnalystType, AssetType
 from cli.prompts import filter_analysts_for_asset_type, parse_analysts
@@ -158,6 +163,79 @@ def backtest(
         console.print(f"[yellow]failed:[/yellow] {ticker} {date}: {reason}")
     for ticker, reason in result.settlement_failures:
         console.print(f"[yellow]unsettled:[/yellow] {ticker}: {reason}")
+
+
+# The only flag whose default is a list: ruff's B008 rejects a mutable call in a
+# default value, so the option object is built here instead of in the signature.
+_GROUP_BY_OPTION = typer.Option(
+    ["rating"],
+    "--group-by",
+    help="Dimension to split the board by: rating, model, provider, analysts, rounds, ticker, "
+    "period or horizon; repeat the flag to print more than one",
+)
+
+
+@app.command()
+def scoreboard(
+    ticker: str = typer.Option(None, "--ticker", help="Score only this ticker's decisions"),
+    since: str = typer.Option(None, "--since", help="Earliest trade date to score, YYYY-MM-DD"),
+    until: str = typer.Option(None, "--until", help="Latest trade date to score, YYYY-MM-DD"),
+    group_by: list[str] = _GROUP_BY_OPTION,
+    min_sample: int = typer.Option(
+        10, "--min-sample", help="Directional decisions a row needs before its hit rate is printed"
+    ),
+    log: str = typer.Option(
+        None,
+        "--log",
+        help="Memory log to score instead of the live one, reading the runs.jsonl beside it",
+    ),
+    json_output: bool = typer.Option(
+        False, "--json", help="Print the board as JSON instead of text"
+    ),
+):
+    """What the desk's settled calls earned, grouped by what produced them."""
+    # The log is resolved now rather than from the import-time DEFAULT_CONFIG, so
+    # ALPHA_DESK_MEMORY_LOG_PATH set for this process is the log that is read.
+    config = build_default_config()
+    if log:
+        config["memory_log_path"] = str(Path(log).expanduser())
+        # --log names a log to score on its own terms, so its index is the
+        # runs.jsonl beside it and not the live desk's.
+        config.pop("run_index_path", None)
+    log_path = Path(config["memory_log_path"])
+    if log and not log_path.is_file():
+        console.print(
+            f"[red]No memory log at {log_path}; --log must name an existing log file[/red]"
+        )
+        raise typer.Exit(code=1)
+
+    index = RunIndex(config)
+    records, malformed = index.load()
+    try:
+        board = build_scoreboard(
+            TradingMemoryLog(config).load_entries(),
+            records,
+            malformed=malformed,
+            index_present=index.path.exists(),
+            ticker=ticker,
+            since=since,
+            until=until,
+            group_by=tuple(group_by),
+        )
+        if json_output:
+            output = json.dumps(as_dict(board), indent=2)
+        else:
+            output = render(board, group_by=tuple(group_by), min_sample=min_sample)
+    except ValueError as exc:  # an unknown dimension or a date that is not one
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=1) from None
+
+    if json_output:
+        # Straight to stdout: rich soft-wraps at the terminal width, which would
+        # hand a caller a document that no longer parses.
+        typer.echo(output)
+    else:
+        console.print(output, markup=False)
 
 
 if __name__ == "__main__":
