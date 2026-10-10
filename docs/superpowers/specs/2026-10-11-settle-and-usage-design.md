@@ -117,7 +117,7 @@ the MCP worker and backtest sweeps record usage with no caller change.
 ### 5. Settling on demand (`memory/settlement.py`, `cli/main.py`, `mcp_server/server.py`)
 
 ```python
-def settle_configured(config: dict, ticker: str | None = None, wait: bool = True) -> Settlement
+def settle_configured(config: dict, ticker: str | None = None) -> Settlement
 ```
 
 A module-level helper beside `settle_all_pending`: it builds the memory log and
@@ -166,7 +166,7 @@ output.
 | Nothing due | Success, says so |
 | Provider reports no cost | `cost_usd: null`; board prints tokens only |
 | Some calls reported cost, some did not | `cost_usd: null` (all-or-nothing) |
-| `--log` pointing at a missing file | Empty pass, exit 0 — the log is created on the next write, like the scoreboard's empty index |
+| `--log` pointing at a missing file | Red error, exit 1 — the same rule `scoreboard --log` already enforces |
 | Index line from P1 (no usage fields) | Loads; board unchanged for those rows |
 
 ## Testing
