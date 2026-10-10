@@ -46,3 +46,19 @@ def test_a_write_failure_is_reported_not_raised(tmp_path):
     assert (
         idx.append(RunRecord(ts="t", ticker="CAT", trade_date="2026-10-09", rating="Buy")) is False
     )
+
+
+def test_an_unserializable_record_is_reported_not_raised(tmp_path):
+    idx = RunIndex(_cfg(tmp_path))
+    bad = RunRecord(
+        ts="t",
+        ticker="CAT",
+        trade_date="2026-10-09",
+        rating="Buy",
+        settings={"x": object()},
+    )
+    assert idx.append(bad) is False
+
+
+def test_a_default_construction_uses_the_live_configuration():
+    assert RunIndex().path.name == "runs.jsonl"

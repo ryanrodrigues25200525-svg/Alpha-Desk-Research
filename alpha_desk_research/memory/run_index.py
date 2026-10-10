@@ -19,6 +19,7 @@ from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 
 from alpha_desk_research.dataflows.files import locked
+from alpha_desk_research.default_config import build_default_config
 
 logger = logging.getLogger(__name__)
 
@@ -55,21 +56,24 @@ class RunIndex:
     """Append-only JSONL record of run attempts, held by one writer at a time."""
 
     def __init__(self, config: dict | None = None):
-        self.path = default_index_path(config or {})
+        # No config is the live configuration, so a default construction still
+        # knows where the log it annotates lives; an explicit dict is taken as
+        # given, whether from a run or from a test.
+        self.path = default_index_path(build_default_config() if config is None else config)
 
     def append(self, record: RunRecord) -> bool:
         """Add one line for ``record``. False, with a warning, when it could not be written.
 
         The write is the run's instrumentation, not part of it: a full disk, a
-        read-only directory or a path another process holds must degrade to a
-        missing line, never to a failed run.
+        read-only directory, a path another process holds or a record that does
+        not serialize must degrade to a missing line, never to a failed run.
         """
-        line = json.dumps(asdict(record), ensure_ascii=False)
         try:
+            line = json.dumps(asdict(record), ensure_ascii=False)
             self.path.parent.mkdir(parents=True, exist_ok=True)
             with locked(self.path), open(self.path, "a", encoding="utf-8") as handle:
                 handle.write(line + "\n")
-        except OSError as exc:
+        except (OSError, TypeError, ValueError) as exc:
             logger.warning("Could not add a run to the index %s (%s)", self.path, exc)
             return False
         return True
