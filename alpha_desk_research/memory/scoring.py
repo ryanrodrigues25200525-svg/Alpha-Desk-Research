@@ -52,20 +52,34 @@ def score_entries(entries: list[dict],
     An entry counts only if it has settled, carries a readable alpha, and is not
     a REVIEW: that rating is the sentinel for a decision nobody could read, so it
     claims no direction and can neither count for nor against the system. Groups
-    keep the order in which they first appear, and a group whose rating claims no
-    direction -- Hold, or a label outside the five tiers -- has no hit rate.
+    keep the order in which they first appear.
+
+    What an entry's alpha proves comes from that entry's own rating, never from
+    the label it was grouped under, so a grouping other than the rating -- by
+    model, provider or analyst, say -- still scores the calls it collects. An
+    entry whose rating claims no direction (Hold, or a label outside the five
+    tiers) stays in the group's count and mean alpha but carries no verdict, and
+    the hit rate is the hits over the entries that do claim a direction; a group
+    with none has no hit rate.
     """
     group = key or (lambda entry: entry["rating"])
-    scored = [(group(entry), alpha_of(entry)) for entry in entries
+    scored = [(group(entry), entry["rating"], alpha_of(entry)) for entry in entries
               if not entry["pending"] and entry["rating"] != RATING_REVIEW]
-    scored = [(name, alpha) for name, alpha in scored if alpha is not None]
+    scored = [(name, rating, alpha) for name, rating, alpha in scored if alpha is not None]
     scores: dict[str | None, RatingScore] = {}
-    for name in dict.fromkeys(name for name, _ in scored):
-        alphas = [alpha for group_name, alpha in scored if group_name == name]
-        direction = DIRECTION.get(name, 0)
+    for name in dict.fromkeys(name for name, _, _ in scored):
+        rows = [(rating, alpha) for group_name, rating, alpha in scored if group_name == name]
+        hits = directionals = 0
+        for rating, alpha in rows:
+            direction = DIRECTION.get(rating, 0)
+            if not direction:
+                continue
+            directionals += 1
+            if alpha * direction > 0:
+                hits += 1
         scores[name] = RatingScore(
-            count=len(alphas),
-            hit_rate=(sum(a * direction > 0 for a in alphas) / len(alphas)) if direction else None,
-            mean_alpha=sum(alphas) / len(alphas),
+            count=len(rows),
+            hit_rate=(hits / directionals) if directionals else None,
+            mean_alpha=sum(alpha for _, alpha in rows) / len(rows),
         )
     return scores

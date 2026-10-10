@@ -23,3 +23,9 @@ def test_a_non_numeric_alpha_is_excluded_not_fatal():
 
 def test_direction_covers_all_five_tiers():
     assert DIRECTION == {"Buy": 1, "Overweight": 1, "Hold": 0, "Underweight": -1, "Sell": -1}
+
+def test_a_non_rating_grouping_still_scores():
+    entries = [_entry("Buy", "+2.0%"), _entry("Buy", "-1.0%"), _entry("Sell", "+1.0%")]
+    by_ticker = score_entries(entries, key=lambda e: e["ticker"])
+    assert by_ticker["NVDA"].hit_rate == 1 / 3   # two Buys: one hit; one Sell: a miss
+    assert by_ticker["NVDA"].count == 3
