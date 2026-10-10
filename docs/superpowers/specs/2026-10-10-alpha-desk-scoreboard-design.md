@@ -90,9 +90,12 @@ An append-only JSONL sidecar beside the memory log, one object per **attempt**
 
 - Path defaults to `Path(config["memory_log_path"]).with_name("runs.jsonl")`, so
   a backtest run writes its own index beside its own log. The new
-  `run_index_path` config key is registered in `default_config.py`'s
-  `ENV_OVERRIDES` map so `ALPHA_DESK_RUN_INDEX_PATH` works like every other
-  setting (`default_config.py:33`).
+  `run_index_path` config key is registered in `default_config.py`
+  (`build_default_config`, beside `memory_log_path` at `:84-86`) with the same
+  `os.getenv("ALPHA_DESK_RUN_INDEX_PATH") or os.path.join(...)` pattern the
+  other path settings use, so `ALPHA_DESK_RUN_INDEX_PATH` overrides it. Paths
+  are read at build time; `_ENV_OVERRIDES` is only for scalar settings that
+  need coercion, so no entry is added there.
 - `settings` is exactly `run_settings()` — never paths or keys.
 - `rating` is `run_rating(final_state)`, so `"REVIEW"` is recorded literally.
 - Written under the existing `dataflows/files.locked()` for the append.
@@ -135,8 +138,13 @@ class GroupScore:
 @dataclass
 class Coverage:
     runs_without_entry: int; entries_without_record: int; malformed_lines: int
-    index_present: bool
+    repeats: int; index_present: bool
 ```
+
+`repeats` counts index lines superseded by a later line for the same
+`(ticker, trade_date)` — a re-run. Only the last line for a cell is scored;
+the earlier ones are counted here rather than dropped silently, and the
+grouping key used to choose "last" is part of the plan, not this design.
 
 - Input: `(log entries, run records)`, joined on `(trade_date, ticker)`.
 - Scored set is exactly `summarize()`'s: settled, alpha parseable, rating not
@@ -166,8 +174,12 @@ class Coverage:
 - **MCP**: read-only `get_scoreboard(ticker=None, since=None, group_by=None)` in
   `mcp_server/server.py`, returning the `Scoreboard` as JSON with the same keys
   as `--json` (`groups`, `overall`, `coverage`, `window`); `group_by=None` means
-  `overall` plus `rating`, matching the CLI default. Update
-  `tests/test_mcp_contract.py` (it pins the current tool set).
+  `overall` plus `rating`, matching the CLI default. Both surfaces resolve the
+  log and index from the config built at call time (`build_default_config()`),
+  so `ALPHA_DESK_MEMORY_LOG_PATH` set for the process is honoured — the same
+  convention `mcp_server/jobs.py:19` already uses for the results dir — and both
+  feed the same `build_scoreboard` call, index included, so the numbers agree.
+  Update `tests/test_mcp_contract.py` (it pins the current tool set).
 - **Report card**: `reporting.write_report_tree(..., scoreboard=None)` and
   `report_html.render_report(..., scoreboard=None)` gain an optional section
   ("Track record") listing the ticker's rows and the overall row. `None` leaves
