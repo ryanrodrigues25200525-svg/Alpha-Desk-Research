@@ -139,7 +139,7 @@ def test_the_header_names_the_analysts_as_users_select_them(tmp_path):
 
 
 # The track record on the page: save_reports builds it from the run's own log and
-# index, so every CLI run and every MCP job picks it up without a caller change.
+# index, so every CLI run that writes HTML picks it up without a caller change.
 def _graph(tmp_path, memory_log, run_index=None):
     """A graph with only what save_reports reads, as the tests above build one."""
     graph = object.__new__(AlphaDeskGraph)
