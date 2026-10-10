@@ -16,13 +16,15 @@ Two rules shape it:
   cannot say what produced it, is filed under ``unknown (...)`` and counted in
   ``coverage`` rather than dropped or attributed to whatever ran nearby.
 
-It reads; it writes nothing.
+It reads; it writes nothing. ``render`` turns the board into plain text and
+``as_dict`` into the data the JSON and MCP surfaces carry, so every surface shows
+the same numbers, and the numbers show only what the sample can support.
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import datetime
 
 from alpha_desk_research.agents.rating import RATING_REVIEW
@@ -41,6 +43,12 @@ NO_SETTINGS = "unknown (no settings)"
 # The label of the whole-sample row, which is printed first and is not a dimension.
 OVERALL = "overall"
 
+# How a row whose label the log cannot give is printed: a pending entry has no
+# holding window, so the horizon dimension's unlabelled row is an open decision,
+# not a window; any other missing label is a gap in the log rather than a bucket.
+UNSETTLED = "unsettled"
+NO_LABEL = "unknown"
+
 
 @dataclass
 class GroupScore:
@@ -48,9 +56,13 @@ class GroupScore:
 
     ``count`` is every filtered decision filed under ``label``; ``resolved`` is the
     subset that was scored (settled, with a readable alpha, rating not ``REVIEW``),
-    and ``hit_rate``/``mean_alpha`` describe only that subset. ``hit_rate`` is None
-    when nothing in the row claimed a direction -- ``Hold``, or a rating outside the
-    five tiers -- and ``mean_alpha`` is None when nothing in the row was scored.
+    and ``hit_rate``/``mean_alpha`` describe only that subset. ``directional`` is
+    the part of ``resolved`` that claimed a direction: the sample ``hit_rate`` is
+    measured over and the count the printed rate's floor applies to, since
+    ``resolved`` counts the ``Hold`` rows too and a rate cannot be computed from
+    those. ``hit_rate`` is None exactly when ``directional`` is zero -- whether
+    because nothing in the row claimed a direction or because nothing in it was
+    scored -- and ``mean_alpha`` is None when nothing in it was scored.
     ``first``/``last`` are the trade dates the row's decisions span, which is the
     sample's range: pending rows are still part of it.
     """
@@ -60,6 +72,7 @@ class GroupScore:
     resolved: int
     pending: int
     unscored: int
+    directional: int
     hit_rate: float | None
     mean_alpha: float | None
     first: str
@@ -124,10 +137,7 @@ def build_scoreboard(
     """
     if group_by is None:
         group_by = ("rating",)
-    requested = tuple(dict.fromkeys(group_by))
-    for name in requested:
-        if name not in DIMENSIONS:
-            raise ValueError(f"unknown group_by {name!r}; choose from {', '.join(DIMENSIONS)}")
+    requested = _dimensions(group_by)
     dimensions = requested + tuple(name for name in DIMENSIONS if name not in requested)
     since, until = _bound(since, "since"), _bound(until, "until")
 
@@ -169,6 +179,170 @@ def build_scoreboard(
     )
 
 
+def render(
+    scoreboard: Scoreboard,
+    *,
+    group_by: tuple[str, ...] = ("rating",),
+    min_sample: int = 10,
+) -> str:
+    """The board as plain text: the overall row first, then the requested dimensions.
+
+    ``group_by`` selects which of the board's dimensions to print, in order; the
+    board carries all of them, so printing every one would make the choice
+    meaningless. A name outside ``DIMENSIONS`` is rejected, as it is in
+    ``build_scoreboard``.
+
+    A rate is printed only when ``min_sample`` directional decisions stand behind
+    it. A row whose settled decisions claimed no direction says so however many
+    there are -- no sample size will ever rate it -- and any other row with too few
+    directional decisions, including one where nothing has settled yet, says it
+    cannot be rated. ``mean_alpha`` is shown either way, with the ``n`` it is over.
+
+    This is the text, not the presentation: the CLI and the report decide how it
+    looks, and both get the same lines from here.
+    """
+    lines = [_row_line(scoreboard.overall, OVERALL, scoreboard.window, min_sample)]
+    for name in _dimensions(group_by):
+        lines.append(f"{name}:")
+        rows = sorted(scoreboard.groups.get(name, ()), key=lambda row: -row.count)
+        lines.extend("  " + _row_line(row, name, scoreboard.window, min_sample) for row in rows)
+        if not rows:
+            lines.append("  no decisions")
+    lines.extend(_coverage_lines(scoreboard.coverage))
+    lines.extend(_sample_lines(scoreboard))
+    return "\n".join(lines)
+
+
+def as_dict(scoreboard: Scoreboard) -> dict:
+    """The board as data, under the dataclasses' own field names.
+
+    This is what ``--json`` and the MCP tool hand out, so it is the board itself
+    rather than a summary of it: every dimension's rows, the overall row, the
+    coverage counts and the window. Taking the shape from the dataclasses means a
+    field added to a row reaches both surfaces without a second list to update.
+    """
+    return asdict(scoreboard)
+
+
+def _dimensions(group_by: tuple[str, ...]) -> tuple[str, ...]:
+    """The dimensions asked for, deduplicated and checked against ``DIMENSIONS``."""
+    requested = tuple(dict.fromkeys(group_by))
+    for name in requested:
+        if name not in DIMENSIONS:
+            raise ValueError(f"unknown group_by {name!r}; choose from {', '.join(DIMENSIONS)}")
+    return requested
+
+
+def _row_line(row: GroupScore, dimension: str, window: str, min_sample: int) -> str:
+    """One printed row: what was decided, how it scored, over what, and when."""
+    alpha = "n/a" if row.mean_alpha is None else f"{row.mean_alpha:+.2%}"
+    span = f"{row.first}…{row.last}" if row.first else "no dates"
+    return (
+        f"{_label_text(dimension, row.label)}: n={row.count}, resolved={row.resolved}, "
+        f"hit rate: {_rate(row, min_sample)}, mean alpha {alpha} (n={row.resolved}), "
+        f"window {window}, {span}"
+    )
+
+
+def _rate(row: GroupScore, min_sample: int) -> str:
+    """The row's rate, or why it has none.
+
+    Settled decisions that claimed no direction have no rate however many of them
+    there are, so they say so rather than looking like a small sample. Anything
+    else short of ``min_sample`` *directional* decisions is only too thin to rate,
+    which is also what a row where nothing has settled yet prints: there is no
+    rate to show, whatever the floor.
+    """
+    if row.directional == 0 and row.resolved > 0:
+        return "no direction claimed"
+    if row.hit_rate is None or row.directional < min_sample:
+        return "too few to rate"
+    return f"{row.hit_rate:.0%}"
+
+
+def _label_text(dimension: str, label: str | None) -> str:
+    """A row's label as printed, with a label the log could not give spelled out.
+
+    A pending entry has no ``holding``, so the horizon dimension holds a ``None``
+    row; that is an open decision, not a window. Any other missing label is a gap
+    in the log rather than a bucket, so it reads as unknown.
+    """
+    if label:
+        return label
+    return UNSETTLED if dimension == "horizon" else NO_LABEL
+
+
+def _coverage_lines(coverage: Coverage) -> list[str]:
+    """What the log and the index could not say about each other, when it is not none.
+
+    A gap is reported once per kind; a clean join prints nothing, and an install
+    with no index at all says so once rather than per decision.
+    """
+    lines = []
+    if coverage.runs_without_entry:
+        lines.append(
+            "coverage: "
+            + _count_line(
+                coverage.runs_without_entry,
+                "run recorded with no log entry",
+                "runs recorded with no log entry",
+            )
+        )
+    if coverage.entries_without_record:
+        lines.append(
+            "coverage: "
+            + _count_line(
+                coverage.entries_without_record,
+                "decision with no run record",
+                "decisions with no run record",
+            )
+        )
+    if coverage.malformed_lines:
+        lines.append(
+            "coverage: "
+            + _count_line(
+                coverage.malformed_lines,
+                "unreadable index line skipped",
+                "unreadable index lines skipped",
+            )
+        )
+    if coverage.repeats:
+        lines.append(
+            "coverage: "
+            + _count_line(
+                coverage.repeats,
+                "re-run superseded (the last settings win)",
+                "re-runs superseded (the last settings win)",
+            )
+        )
+    if not coverage.index_present:
+        lines.append("coverage: no run index, so nothing says what produced these decisions")
+    return lines
+
+
+def _sample_lines(scoreboard: Scoreboard) -> list[str]:
+    """What the numbers are drawn from, and the one thing they cannot support.
+
+    Decisions made on the same date share market beta, so the rows are not
+    independent samples of the desk; the output says so rather than leaving a
+    reader to infer more from the counts than they carry.
+    """
+    overall = scoreboard.overall
+    span = f" from {overall.first} to {overall.last}" if overall.first else ""
+    return [
+        "sample: "
+        + _count_line(overall.count, "decision", "decisions")
+        + span
+        + f" ({overall.resolved} resolved, {overall.pending} pending, {overall.unscored} unscored)",
+        "decisions made on the same date share market beta, so the rows are not independent",
+    ]
+
+
+def _count_line(count: int, singular: str, plural: str) -> str:
+    """A count with the phrase that fits it: ``1 run`` / ``2 runs``."""
+    return f"{count} {singular if count == 1 else plural}"
+
+
 def _rows(entries: list[dict], key: Callable[[dict], str | None]) -> list[GroupScore]:
     """One row per label ``key`` yields, in the order the labels first appear.
 
@@ -200,6 +374,7 @@ def _score_row(
         resolved=score.count if score else 0,
         pending=sum(1 for entry in group if entry.get("pending")),
         unscored=sum(1 for entry in group if entry.get("rating") == RATING_REVIEW),
+        directional=score.directional if score else 0,
         hit_rate=score.hit_rate if score else None,
         mean_alpha=score.mean_alpha if score else None,
         first=min(dates) if dates else "",

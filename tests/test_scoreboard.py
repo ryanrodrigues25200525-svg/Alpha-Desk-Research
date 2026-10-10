@@ -13,7 +13,7 @@ import pytest
 from alpha_desk_research.backtest import summarize
 from alpha_desk_research.memory import TradingMemoryLog
 from alpha_desk_research.memory.run_index import RunRecord
-from alpha_desk_research.scoreboard import DIMENSIONS, build_scoreboard
+from alpha_desk_research.scoreboard import DIMENSIONS, as_dict, build_scoreboard, render
 
 
 def _entry(rating, alpha, *, date="2026-01-05", ticker="NVDA", holding="5d", pending=False):
@@ -223,3 +223,46 @@ def test_an_unknown_dimension_or_a_non_iso_date_is_rejected():
         build_scoreboard([], [], since="not-a-date")
     with pytest.raises(ValueError):
         build_scoreboard([], [], until="2026-1-5")
+
+
+# --- the text and the numbers the surfaces hand out ---------------------------
+
+
+@pytest.mark.unit
+def test_a_rate_below_the_sample_floor_is_not_printed_as_a_rate():
+    text = render(build_scoreboard([_entry("Buy", "+1.0%")] * 3, []), group_by=("rating",))
+    assert "too few to rate" in text and "100%" not in text
+
+
+@pytest.mark.unit
+def test_hold_says_no_direction_claimed_however_many_there_are():
+    text = render(build_scoreboard([_entry("Hold", "+1.0%")] * 25, []), group_by=("rating",))
+    assert "no direction claimed" in text
+
+
+@pytest.mark.unit
+def test_the_output_names_the_sample_and_the_independence_caveat():
+    text = render(build_scoreboard([_entry("Buy", "+1.0%")], []), group_by=("rating",))
+    assert "2026-01-05" in text and "not independent" in text
+
+
+@pytest.mark.unit
+def test_coverage_is_reported_when_things_do_not_join():
+    text = render(build_scoreboard([], [_record()]), group_by=("rating",))
+    assert "no log entry" in text
+
+
+@pytest.mark.unit
+def test_as_dict_round_trips_the_numbers():
+    assert as_dict(build_scoreboard([_entry("Buy", "+4.0%")], []))["overall"]["resolved"] == 1
+
+
+@pytest.mark.unit
+def test_the_floor_counts_directional_decisions_not_every_scored_one():
+    """Twelve settled calls of which nine claim a direction are still under a floor of ten."""
+    entries = [_entry("Buy", "+1.0%")] * 9 + [_entry("Hold", "+1.0%")] * 3
+    text = render(build_scoreboard(entries, []), group_by=("ticker",), min_sample=10)
+    row = next(line for line in text.splitlines() if line.strip().startswith("NVDA:"))
+    assert "resolved=12" in row and "too few to rate" in row
+    # no rate was printed: the only percent before the mean alpha is the mean alpha's own
+    assert "%" not in row.split("mean alpha")[0]

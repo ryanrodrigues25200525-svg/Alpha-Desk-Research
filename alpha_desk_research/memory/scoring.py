@@ -40,13 +40,25 @@ DIRECTION = {"Buy": 1, "Overweight": 1, "Hold": 0, "Underweight": -1, "Sell": -1
 
 @dataclass
 class RatingScore:
+    """One grouping's pool and how the calls in it did.
+
+    ``count`` is the whole scored pool -- settled, with a readable alpha, not
+    ``REVIEW`` -- and includes the entries whose rating claims no direction.
+    ``directional`` is the subset of that pool that claimed one, which is the
+    denominator ``hit_rate`` is measured over, so ``hit_rate`` is None exactly
+    when it is zero. A reader that wants to know whether a rate's sample is big
+    enough reads ``directional``, never ``count``.
+    """
+
     count: int
+    directional: int
     hit_rate: float | None
     mean_alpha: float
 
 
-def score_entries(entries: list[dict],
-                  key: Callable[[dict], str | None] | None = None) -> dict[str | None, RatingScore]:
+def score_entries(
+    entries: list[dict], key: Callable[[dict], str | None] | None = None
+) -> dict[str | None, RatingScore]:
     """Score settled entries, grouped by rating or by ``key(entry)``.
 
     An entry counts only if it has settled, carries a readable alpha, and is not
@@ -63,8 +75,11 @@ def score_entries(entries: list[dict],
     with none has no hit rate.
     """
     group = key or (lambda entry: entry["rating"])
-    scored = [(group(entry), entry["rating"], alpha_of(entry)) for entry in entries
-              if not entry["pending"] and entry["rating"] != RATING_REVIEW]
+    scored = [
+        (group(entry), entry["rating"], alpha_of(entry))
+        for entry in entries
+        if not entry["pending"] and entry["rating"] != RATING_REVIEW
+    ]
     scored = [(name, rating, alpha) for name, rating, alpha in scored if alpha is not None]
     scores: dict[str | None, RatingScore] = {}
     for name in dict.fromkeys(name for name, _, _ in scored):
@@ -79,6 +94,7 @@ def score_entries(entries: list[dict],
                 hits += 1
         scores[name] = RatingScore(
             count=len(rows),
+            directional=directionals,
             hit_rate=(hits / directionals) if directionals else None,
             mean_alpha=sum(alpha for _, alpha in rows) / len(rows),
         )
